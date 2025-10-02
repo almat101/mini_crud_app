@@ -15,7 +15,7 @@ dotenv.config();
 
 
 app.use(cors({
-  origin : ['http://localhost:3000','http://localhost'], //cors per il frontend per sviluppo locale e per nginx in produzione
+  origin : ['http://localhost:3000','http://localhost','https://crud1.alematta.com'], //cors per il frontend per sviluppo locale e per nginx in produzione
   methods : [ 'GET', 'POST', 'PATCH', 'DELETE'],
   // credentials: true, 
   }
