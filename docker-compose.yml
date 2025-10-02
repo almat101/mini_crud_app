@@ -1,0 +1,120 @@
+services:
+
+  frontend:
+    build: 
+      context: ./frontend/
+      dockerfile: Dockerfile
+    container_name: frontend
+    env_file: ".env"
+    ports:
+      - 80:80
+    restart: unless-stopped
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      products-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - crud-app
+
+  auth-service:
+    build: 
+      context: ./backend/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    env_file: ".env"
+    ports:
+      - 3030:3030
+    restart: unless-stopped
+    depends_on:
+      db_auth:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3030/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - crud-app
+
+  products-service:
+    build: 
+      context: ./backend/products-service
+      dockerfile: Dockerfile
+    container_name: products-service
+    env_file: ".env"
+    ports:
+      - 3020:3020
+    restart: unless-stopped
+    depends_on:
+      db_products:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - crud-app
+
+  db_auth:
+    image: postgres:17-alpine3.22
+    container_name: db_auth
+    restart: always
+    env_file: ".env" 
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER_AUTH}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_AUTH}
+      - POSTGRES_DB=${POSTGRES_DB_AUTH}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+      - ./backend/auth-service/init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s   
+    networks:
+      - crud-app
+
+  db_products:
+    image: postgres:17-alpine3.22
+    container_name: db_products
+    restart: always
+    env_file: ".env"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER_PRODUCTS}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_PRODUCTS}
+      - POSTGRES_DB=${POSTGRES_DB_PRODUCTS}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_products_data:/var/lib/postgresql/data
+      - ./backend/products-service/init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s 
+    networks:
+      - crud-app
+
+volumes:
+  postgres_auth_data:
+  postgres_products_data:
+
+networks:
+  crud-app:
+    driver: bridge
