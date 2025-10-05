@@ -89,7 +89,7 @@ export const signup = async (req, res) => {
         // prev_query e' una query preventiva che serve a controllare se un utente o emai e' gia esistente 
         const prev_query = await pool.query('SELECT * FROM users WHERE username = $1 OR email = $2', [ validateUser.username , validateUser.email ])
         if (prev_query.rowCount == 1) // prev_query.rowCount ritorna uno se c'e una corrispondenza, ossia se esiste gia un utente con lo stesso user e/o email
-            return res.status(400).json({ message : "Username or Email already exists" })
+            return res.status(409).json({ message : "Username or Email already exists" })
         // Inserimento dello user nel db con una query protetta dai placeholder della libreria pg
         const text = `INSERT INTO users (username, email, password_hash) VALUES ($1 ,$2 ,$3 ) returning *`;
         const values = [ validateUser.username, validateUser.email, hash]
