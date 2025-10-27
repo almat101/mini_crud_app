@@ -4,21 +4,31 @@ import dotenv from 'dotenv'
 
 dotenv.config()
 
-const pool = new Pool({
-  host: process.env.POSTGRES_HOST_AUTH,
-  user:  process.env.POSTGRES_USER_AUTH,
-  database: process.env.POSTGRES_DB_AUTH,
-  password: process.env.POSTGRES_PASSWORD_AUTH,
-  port: process.env.POSTGRES_PORT_AUTH,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-  maxLifetimeSeconds: 60
-});
+let pool;
+
+// prima la pool veniva creata subito appena partiva l app, ora viene creata in modo ritardato(lazy) solo quando una funzione repository viene chiamata. 
+// questo migliora il testing perche pool non e piu globale ma isolato in ogni funzione repository
+function getPool() {
+  if (!pool) {
+    pool = new Pool({
+      host: process.env.POSTGRES_HOST_AUTH,
+      user: process.env.POSTGRES_USER_AUTH,
+      database: process.env.POSTGRES_DB_AUTH,
+      password: process.env.POSTGRES_PASSWORD_AUTH,
+      port: process.env.POSTGRES_PORT_AUTH,
+      max: 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 2000,
+      maxLifetimeSeconds: 60,
+    });
+  }
+  return pool;
+}
 
 
 export async function testDatabaseConnection(){
     try {
+        const pool = getPool()
         const result = await pool.query('SELECT 1');
         console.log('Database Connection Successful:', result.rows);
     } catch (error) {
@@ -33,6 +43,7 @@ export async function testDatabaseConnection(){
 // const prev_query = await pool.query('SELECT * FROM users WHERE username = $1 OR email = $2', [ validateUser.username , validateUser.email ])
 export async function executePrevQuery(username, email){
     try {
+        const pool = getPool()
         return pool.query('SELECT * FROM users WHERE username = $1 OR email = $2', [ username , email ])
     } catch (error) {
         console.log("Error on handlePrevQuery: ", error)
@@ -49,6 +60,7 @@ export async function executePrevQuery(username, email){
 // const result = await pool.query( text, values); 
 export async function createUser(username, email, hash){
     try {
+        const pool = getPool()
         const text = `INSERT INTO users (username, email, password_hash) VALUES ($1 ,$2 ,$3 ) returning *`;
         const values = [ username, email, hash]
         const result = await pool.query( text, values);
@@ -65,6 +77,7 @@ export async function createUser(username, email, hash){
 
 export async function findUser(email){
     try {
+        const pool = getPool()
         return await pool.query('SELECT * FROM users WHERE email = $1', [ email ])
     } catch (error) {
         console.log("Error on findUser: ", error)
