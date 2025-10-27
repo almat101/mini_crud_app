@@ -8,7 +8,7 @@ const schema_login = Joi.object({
         .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net','org','edu','gov', 'io', 'co', 'it', 'us', 'uk'] } }),
 
     password: Joi.string()
-        .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$'))
+        .pattern(new RegExp('^[a-zA-Z0-9]{8,}$'))
 })
 
 // schema per /signup
@@ -20,7 +20,7 @@ const schema_signup = Joi.object({
         .required(),
 
     password: Joi.string()
-        .pattern(new RegExp('^[a-zA-Z0-9]{3,30}$'))
+        .pattern(new RegExp('^[a-zA-Z0-9]{8,}$'))
         .required(),
 
     repeat_password: Joi.ref('password'),
@@ -31,7 +31,12 @@ const schema_signup = Joi.object({
 })
     .with('password', 'repeat_password');
 
-
+// payload shema
+const jwtPayloadSchema = Joi.object({
+    userId: Joi.number().required(),
+    username: Joi.string().required(),
+    email: Joi.string().email().required()
+});
 
 // validateUserLogin = await schema_login.validateAsync(userJoiLogin)
 export async function validateUserCredentials(user) {
@@ -57,6 +62,17 @@ export const generateJwtToken = (payload, secret, options) => {
 // const salt = await bcrypt.genSalt(saltRounds); // Generate salt
 // const hash = await bcrypt.hash(validateUser.password, salt); // adesso abbiamo la password hashata e la possiamo salvare nel db
 export const hashPassword = async (plaintextPassword) => {
+    if(!plaintextPassword || plaintextPassword.trim() === "") {
+        throw new Error("Password cannot be empty");
+    }
+    
+    //validazione password con la stessa regex dello schema Joi di signup e login
+    const passwordRegex = /^[a-zA-Z0-9]{8,}$/;
+    if (!passwordRegex.test(plaintextPassword)) {
+        throw new Error("Password must be at least 8 characters long and contain only letters and numbers.");
+    }
+
+    
     try {
         const saltRounds = 10;
         const salt = await bcrypt.genSalt(saltRounds);
@@ -79,3 +95,12 @@ export async function validateSignupData(user) {
         throw error
     }
 }
+
+
+export const validateJwtPayload = (payload) => {
+    const { error } = jwtPayloadSchema.validate(payload);
+    if (error) {
+        throw new Error('Invalid payload');
+    }
+    return true;
+};

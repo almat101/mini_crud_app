@@ -1,5 +1,5 @@
 import { executePrevQuery, createUser, findUser } from '../repositories/authRepository.js';
-import { validateUserCredentials, comparePasswords , generateJwtToken, hashPassword, validateSignupData } from '../services/authService.js';
+import { validateUserCredentials, comparePasswords , generateJwtToken, hashPassword, validateSignupData,validateJwtPayload } from '../services/authService.js';
 
 
 // funzione che gestisce la logica di registrazione utente
@@ -85,13 +85,18 @@ export const login = async (req, res) => {
             username : userFound.username,
             email : userFound.email
         };
-
-        // Generazione token JWT con jsonwebtoken
-        // const token =  jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }); //scadenza 7giorni dopo devo implementare al logout una blacklist dei token
-        const token = generateJwtToken(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
-        
-        // Restituzione del token al browser con ritorno 200 ok aggiunto user id per evitare il decode del token JWT nel frontend
-        res.status(200).json({ message: "Login succesful" , token : token , id : userFound.id })
+        try {
+            //validazion payload con Joi schema
+            validateJwtPayload(payload)
+            // Generazione token JWT con jsonwebtoken
+            // const token =  jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }); //scadenza 7giorni dopo devo implementare al logout una blacklist dei token
+            const token = generateJwtToken(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
+            // Restituzione del token al browser con ritorno 200 ok 
+            res.status(200).json({ message: "Login succesful" , token : token , id : userFound.id })
+        } catch (error) {
+            res.status(400).json({ message: error.message });
+            return ;
+        }
     } catch (error) {
         res.status(500).json({ message: "Internal server error" })
     }
