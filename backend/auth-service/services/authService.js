@@ -43,8 +43,8 @@ export async function validateUserCredentials(user) {
     try {
         return await schema_login.validateAsync(user)
     } catch (error) {
-        console.error("Error on validateUserCredential: ", error)
-        throw new Error("Invalid signup data. Please check your input.");
+        // console.error("Error on validateUserCredential: ", error)
+        throw new Error("Invalid login data. Please check your input.");
     }
 }
 
@@ -79,10 +79,10 @@ export const hashPassword = async (plaintextPassword) => {
         const hash = await bcrypt.hash(plaintextPassword, salt);
         return hash;
     } catch (error) {
-        console.error("Error hashing password:", error);
-        throw error
-    }
-};
+        // console.error("Error hashing password:", error);
+        throw new Error("Error hashing password.")
+    };
+}
 
 // validateUser = await schema_signup.validateAsync(userJoi);
 // validateUser = await validateSignupData(userJoi);
@@ -91,8 +91,8 @@ export async function validateSignupData(user) {
     try {
         return await schema_signup.validateAsync(user)
     } catch (error) {
-        console.error("Error on validateUserCredential: ", error)
-        throw error
+        // console.error("Error on validateSignupData: ", error)
+        throw new Error("Invalid signup data. Please check your input.")
     }
 }
 

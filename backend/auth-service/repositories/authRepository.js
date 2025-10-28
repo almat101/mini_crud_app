@@ -2,7 +2,7 @@ import { Pool } from 'pg'
 import dotenv from 'dotenv'
 
 
-dotenv.config()
+dotenv.config({ silent: true })
 
 let pool;
 
@@ -30,9 +30,9 @@ export async function testDatabaseConnection(){
     try {
         const pool = getPool()
         const result = await pool.query('SELECT 1');
-        console.log('Database Connection Successful:', result.rows);
+        return true
     } catch (error) {
-        console.error('Database Connection Error:', error);
+        throw error
     }
 };
 

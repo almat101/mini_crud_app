@@ -23,14 +23,13 @@ app.use(helmet());
 // Parsa il corpo(body) delle richieste in entrata quando sono in formato JSON
 app.use(express.json());
 
-// //rotta test
-// app.get('/', (req, res) => {
+// rotta test
+// app.get('/', async (req, res) => {
 //   res.send('Hello auth-service!');
 // });
 
 // Collego il router di autenticazione aggiungo /auth in modo da dover chiamare solo /auth/signup e auth/login
 app.use('/auth', authRoutes);
-
 
 app.get('/health', async (req, res) => {
   try {
