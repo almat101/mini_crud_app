@@ -26,8 +26,12 @@ function getPool() {
 
 export async function testDatabaseConnection() {
   const pool = getPool();
-  await pool.query("SELECT 1");
-  return true;
+  try {
+    await pool.query("SELECT 1");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 // prev_query e' una query preventiva che serve a controllare se un utente o emai e' gia esistente
@@ -39,9 +43,8 @@ export async function executePrevQuery(username, email) {
       username,
       email,
     ]);
-  } catch (error) {
-    console.log("Error on handlePrevQuery: ", error);
-    throw error;
+  } catch {
+    throw new Error("Error on executePrevQuery");
   }
 }
 
@@ -56,9 +59,8 @@ export async function createUser(username, email, hash) {
     const values = [username, email, hash];
     const result = await pool.query(text, values);
     return result;
-  } catch (error) {
-    console.log("Error on handleSignup: ", error);
-    throw error;
+  } catch {
+    throw new Error("Error on createUser");
   }
 }
 
@@ -69,8 +71,7 @@ export async function findUser(email) {
   try {
     const pool = getPool();
     return await pool.query("SELECT * FROM users WHERE email = $1", [email]);
-  } catch (error) {
-    console.log("Error on findUser: ", error);
-    throw error;
+  } catch {
+    throw new Error("Error on findUser");
   }
 }
