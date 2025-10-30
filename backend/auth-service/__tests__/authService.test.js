@@ -45,40 +45,40 @@ describe("unit test for validateJwtPayload", () => {
 
     //Act and assert
     expect(() => validateJwtPayload(payload, secret, options)).toThrow(
-      "Invalid payload",
+      "Invalid payload"
     );
   });
-});
 
-test("should return true for a valid payload", () => {
-  // Arrange
-  const payload = {
-    userId: 1,
-    username: "alex",
-    email: "alex@gmail.com",
-  };
-  const secret = "secret_test";
-  const options = { expiresIn: "1h" };
+  test("should return true for a valid payload", () => {
+    // Arrange
+    const payload = {
+      userId: 1,
+      username: "alex",
+      email: "alex@gmail.com",
+    };
+    const secret = "secret_test";
+    const options = { expiresIn: "1h" };
 
-  // Act
-  const ret = validateJwtPayload(payload, secret, options);
+    // Act
+    const ret = validateJwtPayload(payload, secret, options);
 
-  // Assert
-  expect(ret).toBe(true);
-});
+    // Assert
+    expect(ret).toBe(true);
+  });
 
-test("should validate a valid payload without throwing an error", () => {
-  // Arrange
-  const payload = {
-    userId: 1,
-    username: "alex",
-    email: "alex@gmail.com",
-  };
-  const secret = "secret_test";
-  const options = { expiresIn: "1h" };
+  test("should validate a valid payload without throwing an error", () => {
+    // Arrange
+    const payload = {
+      userId: 1,
+      username: "alex",
+      email: "alex@gmail.com",
+    };
+    const secret = "secret_test";
+    const options = { expiresIn: "1h" };
 
-  // assert + Act & Assert
-  expect(() => validateJwtPayload(payload, secret, options)).not.toThrow();
+    // assert + Act & Assert
+    expect(() => validateJwtPayload(payload, secret, options)).not.toThrow();
+  });
 });
 
 describe("Unit test for hashPassword", () => {
@@ -105,7 +105,7 @@ describe("Unit test for hashPassword", () => {
 
     //Act e assert
     await expect(hashPassword(plaintextPassword)).rejects.toThrow(
-      "Password cannot be empty",
+      "Password cannot be empty"
     );
   });
 
@@ -115,7 +115,33 @@ describe("Unit test for hashPassword", () => {
 
     //Act e assert
     await expect(hashPassword(plaintextPassword)).rejects.toThrow(
-      "Password must be at least 8 characters long and contain only letters and numbers.",
+      "Password must be at least 8 characters long and contain only letters and numbers."
+    );
+  });
+});
+
+describe("Unit test for comparePasswords", () => {
+  test("Should return true if the password is the same as the hashed one", async () => {
+    //arrange
+    const plaintextPassword = "ciao12testD";
+
+    const hashed = await hashPassword(plaintextPassword);
+
+    //act assert
+    await expect(comparePasswords(plaintextPassword, hashed)).resolves.toBe(
+      true
+    );
+  });
+
+  test("Should return false if the password is not the same", async () => {
+    //arrange
+    const plaintextPassword = "ciao12testD";
+
+    const hashed = "gewagianfdiaiasdfda";
+
+    //act assert
+    await expect(comparePasswords(plaintextPassword, hashed)).resolves.toBe(
+      false
     );
   });
 });
@@ -164,7 +190,7 @@ describe("Unit test per validateUserCredentials", () => {
 
     //Act Assert
     await expect(validateUserCredentials(invalid_email_login)).rejects.toThrow(
-      "Invalid login data. Please check your input.",
+      "Invalid login data. Please check your input."
     );
   });
 
@@ -177,7 +203,7 @@ describe("Unit test per validateUserCredentials", () => {
 
     //Act Assert
     await expect(validateUserCredentials(invalid_email_login)).rejects.toThrow(
-      "Invalid login data. Please check your input.",
+      "Invalid login data. Please check your input."
     );
   });
 
@@ -190,7 +216,7 @@ describe("Unit test per validateUserCredentials", () => {
 
     //Act Assert
     await expect(validateUserCredentials(empty_email_login)).rejects.toThrow(
-      "Invalid login data. Please check your input.",
+      "Invalid login data. Please check your input."
     );
   });
 
@@ -203,7 +229,7 @@ describe("Unit test per validateUserCredentials", () => {
 
     //Act Assert
     await expect(validateUserCredentials(empty_password_login)).rejects.toThrow(
-      "Invalid login data. Please check your input.",
+      "Invalid login data. Please check your input."
     );
   });
 });
@@ -257,7 +283,7 @@ describe("Unit test for validateSignupData", () => {
     };
     // act e assert
     await expect(
-      validateSignupData(invalid_user_signup_wrong_password),
+      validateSignupData(invalid_user_signup_wrong_password)
     ).rejects.toThrow("Invalid signup data. Please check your input.");
   });
 
@@ -271,7 +297,7 @@ describe("Unit test for validateSignupData", () => {
     };
     // act e assert
     await expect(validateSignupData(invalid_user_signup_email)).rejects.toThrow(
-      "Invalid signup data. Please check your input.",
+      "Invalid signup data. Please check your input."
     );
   });
 
@@ -285,7 +311,7 @@ describe("Unit test for validateSignupData", () => {
     };
     // act e assert
     await expect(
-      validateSignupData(invalid_user_signup_username),
+      validateSignupData(invalid_user_signup_username)
     ).rejects.toThrow("Invalid signup data. Please check your input.");
   });
 
@@ -299,7 +325,7 @@ describe("Unit test for validateSignupData", () => {
     };
     // act e assert
     await expect(
-      validateSignupData(invalid_user_signup_empty_username),
+      validateSignupData(invalid_user_signup_empty_username)
     ).rejects.toThrow("Invalid signup data. Please check your input.");
   });
 
@@ -313,7 +339,7 @@ describe("Unit test for validateSignupData", () => {
     };
     // act e assert
     await expect(
-      validateSignupData(invalid_user_signup_empty_password),
+      validateSignupData(invalid_user_signup_empty_password)
     ).rejects.toThrow("Invalid signup data. Please check your input.");
   });
 
@@ -327,7 +353,7 @@ describe("Unit test for validateSignupData", () => {
     };
     // act e assert
     await expect(
-      validateSignupData(invalid_user_signup_empty_email),
+      validateSignupData(invalid_user_signup_empty_email)
     ).rejects.toThrow("Invalid signup data. Please check your input.");
   });
 
@@ -341,7 +367,7 @@ describe("Unit test for validateSignupData", () => {
     };
     // act e assert
     await expect(validateSignupData(invalid_user_signup_empty)).rejects.toThrow(
-      "Invalid signup data. Please check your input.",
+      "Invalid signup data. Please check your input."
     );
   });
 
@@ -355,7 +381,7 @@ describe("Unit test for validateSignupData", () => {
     };
     // act e assert
     await expect(
-      validateSignupData(invalid_user_signup_int_username),
+      validateSignupData(invalid_user_signup_int_username)
     ).rejects.toThrow("Invalid signup data. Please check your input.");
   });
 });

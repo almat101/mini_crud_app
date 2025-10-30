@@ -79,7 +79,7 @@ export const hashPassword = async (plaintextPassword) => {
   const passwordRegex = /^[a-zA-Z0-9]{8,}$/;
   if (!passwordRegex.test(plaintextPassword)) {
     throw new Error(
-      "Password must be at least 8 characters long and contain only letters and numbers.",
+      "Password must be at least 8 characters long and contain only letters and numbers."
     );
   }
 

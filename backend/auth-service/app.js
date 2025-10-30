@@ -16,7 +16,7 @@ app.use(
     ], //cors per il frontend per sviluppo locale e per nginx in produzione
     methods: ["GET", "POST", "PATCH", "DELETE"],
     // credentials: true,
-  }),
+  })
 );
 
 // middleware logger utile per stampare info sulla richiesta es "GET /about 200 1.896 ms - 34"
