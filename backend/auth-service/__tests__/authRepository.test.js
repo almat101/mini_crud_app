@@ -41,7 +41,7 @@ describe("unit test for findUser", () => {
     //Assert
     expect(mockQuery).toHaveBeenCalledWith(
       "SELECT * FROM users WHERE email = $1",
-      [email],
+      [email]
     );
 
     //Verify
@@ -66,7 +66,7 @@ describe("unit test for findUser", () => {
     //Assert
     expect(mockQuery).toHaveBeenCalledWith(
       "SELECT * FROM users WHERE email = $1",
-      [email],
+      [email]
     );
 
     //Verify

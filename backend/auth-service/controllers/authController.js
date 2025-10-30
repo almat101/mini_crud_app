@@ -37,7 +37,7 @@ export const signup = async (req, res) => {
     // esegue una query preventiva per controllare se un utente o email sono gia presenti nel db
     const prev_query = await executePrevQuery(
       validateUser.username,
-      validateUser.email,
+      validateUser.email
     );
 
     if (prev_query.rowCount == 1)
@@ -50,7 +50,7 @@ export const signup = async (req, res) => {
     const result = await createUser(
       validateUser.username,
       validateUser.email,
-      hash,
+      hash
     );
 
     return res
@@ -93,7 +93,7 @@ export const login = async (req, res) => {
     //Usa bcrypt.compare per confrontare la password in plaintext con la password hashata
     const compared_password = await comparePasswords(
       validateUserLogin.password,
-      userFound.password_hash,
+      userFound.password_hash
     );
 
     // 401 se non coincidono
