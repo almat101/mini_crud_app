@@ -1,12 +1,11 @@
-import { Pool } from 'pg'
-import dotenv from 'dotenv'
+import { Pool } from "pg";
+import dotenv from "dotenv";
 
-
-dotenv.config({ silent: true })
+dotenv.config({ silent: true });
 
 let pool;
 
-// prima la pool veniva creata subito appena partiva l app, ora viene creata in modo ritardato(lazy) solo quando una funzione repository viene chiamata. 
+// prima la pool veniva creata subito appena partiva l app, ora viene creata in modo ritardato(lazy) solo quando una funzione repository viene chiamata.
 // questo migliora il testing perche pool non e piu globale ma isolato in ogni funzione repository
 function getPool() {
   if (!pool) {
@@ -25,62 +24,53 @@ function getPool() {
   return pool;
 }
 
-
-export async function testDatabaseConnection(){
-    try {
-        const pool = getPool()
-        const result = await pool.query('SELECT 1');
-        return true
-    } catch (error) {
-        throw error
-    }
-};
-
-
-
-
-// prev_query e' una query preventiva che serve a controllare se un utente o emai e' gia esistente 
-// const prev_query = await pool.query('SELECT * FROM users WHERE username = $1 OR email = $2', [ validateUser.username , validateUser.email ])
-export async function executePrevQuery(username, email){
-    try {
-        const pool = getPool()
-        return pool.query('SELECT * FROM users WHERE username = $1 OR email = $2', [ username , email ])
-    } catch (error) {
-        console.log("Error on handlePrevQuery: ", error)
-        throw error
-    }
+export async function testDatabaseConnection() {
+  const pool = getPool();
+  await pool.query("SELECT 1");
+  return true;
 }
 
-
-
+// prev_query e' una query preventiva che serve a controllare se un utente o emai e' gia esistente
+// const prev_query = await pool.query('SELECT * FROM users WHERE username = $1 OR email = $2', [ validateUser.username , validateUser.email ])
+export async function executePrevQuery(username, email) {
+  try {
+    const pool = getPool();
+    return pool.query("SELECT * FROM users WHERE username = $1 OR email = $2", [
+      username,
+      email,
+    ]);
+  } catch (error) {
+    console.log("Error on handlePrevQuery: ", error);
+    throw error;
+  }
+}
 
 // Inserimento dello user nel db con una query protetta dai placeholder della libreria pg
 // const text = `INSERT INTO users (username, email, password_hash) VALUES ($1 ,$2 ,$3 ) returning *`;
 // const values = [ validateUser.username, validateUser.email, hash]
-// const result = await pool.query( text, values); 
-export async function createUser(username, email, hash){
-    try {
-        const pool = getPool()
-        const text = `INSERT INTO users (username, email, password_hash) VALUES ($1 ,$2 ,$3 ) returning *`;
-        const values = [ username, email, hash]
-        const result = await pool.query( text, values);
-        return result
-    } catch (error) {
-        console.log("Error on handleSignup: ", error)
-        throw error
-    }
+// const result = await pool.query( text, values);
+export async function createUser(username, email, hash) {
+  try {
+    const pool = getPool();
+    const text = `INSERT INTO users (username, email, password_hash) VALUES ($1 ,$2 ,$3 ) returning *`;
+    const values = [username, email, hash];
+    const result = await pool.query(text, values);
+    return result;
+  } catch (error) {
+    console.log("Error on handleSignup: ", error);
+    throw error;
+  }
 }
-
 
 // query per cercare l'utente dall email
 // const query = await pool.query('SELECT * FROM users WHERE email = $1', [ validateUserLogin.email ])
 
-export async function findUser(email){
-    try {
-        const pool = getPool()
-        return await pool.query('SELECT * FROM users WHERE email = $1', [ email ])
-    } catch (error) {
-        console.log("Error on findUser: ", error)
-        throw error
-    }
+export async function findUser(email) {
+  try {
+    const pool = getPool();
+    return await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+  } catch (error) {
+    console.log("Error on findUser: ", error);
+    throw error;
+  }
 }

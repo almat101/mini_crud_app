@@ -1,106 +1,110 @@
-import Joi from 'joi';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken'
+import Joi from "joi";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 //schema per /login
 const schema_login = Joi.object({
-    email: Joi.string()
-        .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net','org','edu','gov', 'io', 'co', 'it', 'us', 'uk'] } }),
+  email: Joi.string().email({
+    minDomainSegments: 2,
+    tlds: {
+      allow: ["com", "net", "org", "edu", "gov", "io", "co", "it", "us", "uk"],
+    },
+  }),
 
-    password: Joi.string()
-        .pattern(new RegExp('^[a-zA-Z0-9]{8,}$'))
-})
+  password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9]{8,}$")),
+});
 
 // schema per /signup
 const schema_signup = Joi.object({
-    username: Joi.string()
-        .alphanum()
-        .min(3)
-        .max(30)
-        .required(),
+  username: Joi.string().alphanum().min(3).max(30).required(),
 
-    password: Joi.string()
-        .pattern(new RegExp('^[a-zA-Z0-9]{8,}$'))
-        .required(),
+  password: Joi.string().pattern(new RegExp("^[a-zA-Z0-9]{8,}$")).required(),
 
-    repeat_password: Joi.ref('password'),
+  repeat_password: Joi.ref("password"),
 
-    email: Joi.string()
-        .email({ minDomainSegments: 2, tlds: { allow: ['com', 'net','org','edu','gov', 'io', 'co', 'it', 'us', 'uk'] } })
-        .required()
-})
-    .with('password', 'repeat_password');
+  email: Joi.string()
+    .email({
+      minDomainSegments: 2,
+      tlds: {
+        allow: [
+          "com",
+          "net",
+          "org",
+          "edu",
+          "gov",
+          "io",
+          "co",
+          "it",
+          "us",
+          "uk",
+        ],
+      },
+    })
+    .required(),
+}).with("password", "repeat_password");
 
 // payload shema
 const jwtPayloadSchema = Joi.object({
-    userId: Joi.number().required(),
-    username: Joi.string().required(),
-    email: Joi.string().email().required()
+  userId: Joi.number().required(),
+  username: Joi.string().required(),
+  email: Joi.string().email().required(),
 });
 
-// validateUserLogin = await schema_login.validateAsync(userJoiLogin)
 export async function validateUserCredentials(user) {
-    try {
-        return await schema_login.validateAsync(user)
-    } catch (error) {
-        // console.error("Error on validateUserCredential: ", error)
-        throw new Error("Invalid login data. Please check your input.");
-    }
+  try {
+    return await schema_login.validateAsync(user);
+  } catch {
+    throw new Error("Invalid login data. Please check your input.");
+  }
 }
 
 export const comparePasswords = async (plaintextPassword, hashedPassword) => {
-    return bcrypt.compare(plaintextPassword, hashedPassword);
+  return bcrypt.compare(plaintextPassword, hashedPassword);
 };
 
 export const generateJwtToken = (payload, secret, options) => {
-    return jwt.sign(payload, secret, options);
+  return jwt.sign(payload, secret, options);
 };
-
 
 // Per prima cosa geniaramo un Salt ( che e' una stringa causale che andra aggiunta alla password prima di hasharla)
 // const saltRounds = 10;
 // const salt = await bcrypt.genSalt(saltRounds); // Generate salt
 // const hash = await bcrypt.hash(validateUser.password, salt); // adesso abbiamo la password hashata e la possiamo salvare nel db
 export const hashPassword = async (plaintextPassword) => {
-    if(!plaintextPassword || plaintextPassword.trim() === "") {
-        throw new Error("Password cannot be empty");
-    }
-    
-    //validazione password con la stessa regex dello schema Joi di signup e login
-    const passwordRegex = /^[a-zA-Z0-9]{8,}$/;
-    if (!passwordRegex.test(plaintextPassword)) {
-        throw new Error("Password must be at least 8 characters long and contain only letters and numbers.");
-    }
+  if (!plaintextPassword || plaintextPassword.trim() === "") {
+    throw new Error("Password cannot be empty");
+  }
 
-    
-    try {
-        const saltRounds = 10;
-        const salt = await bcrypt.genSalt(saltRounds);
-        const hash = await bcrypt.hash(plaintextPassword, salt);
-        return hash;
-    } catch (error) {
-        // console.error("Error hashing password:", error);
-        throw new Error("Error hashing password.")
-    };
-}
+  //validazione password con la stessa regex dello schema Joi di signup e login
+  const passwordRegex = /^[a-zA-Z0-9]{8,}$/;
+  if (!passwordRegex.test(plaintextPassword)) {
+    throw new Error(
+      "Password must be at least 8 characters long and contain only letters and numbers.",
+    );
+  }
 
-// validateUser = await schema_signup.validateAsync(userJoi);
-// validateUser = await validateSignupData(userJoi);
+  try {
+    const saltRounds = 10;
+    const salt = await bcrypt.genSalt(saltRounds);
+    const hash = await bcrypt.hash(plaintextPassword, salt);
+    return hash;
+  } catch {
+    throw new Error("Error hashing password.");
+  }
+};
 
 export async function validateSignupData(user) {
-    try {
-        return await schema_signup.validateAsync(user)
-    } catch (error) {
-        // console.error("Error on validateSignupData: ", error)
-        throw new Error("Invalid signup data. Please check your input.")
-    }
+  try {
+    return await schema_signup.validateAsync(user);
+  } catch {
+    throw new Error("Invalid signup data. Please check your input.");
+  }
 }
 
-
 export const validateJwtPayload = (payload) => {
-    const { error } = jwtPayloadSchema.validate(payload);
-    if (error) {
-        throw new Error('Invalid payload');
-    }
-    return true;
+  const { error } = jwtPayloadSchema.validate(payload);
+  if (error) {
+    throw new Error("Invalid payload");
+  }
+  return true;
 };
