@@ -55,9 +55,9 @@ export const signup = async (req, res) => {
 
     return res
       .status(201)
-      .send({ message: "User created", product: result.rows[0] });
-  } catch (error) {
-    console.error("Signup Error:", error);
+      .send({ message: "User created", user: result.rows[0] });
+  } catch {
+    // console.error("Signup Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
