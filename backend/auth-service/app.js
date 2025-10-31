@@ -3,9 +3,8 @@ import morgan from "morgan";
 import helmet from "helmet";
 import authRoutes from "./routes/authRoutes.js";
 import cors from "cors";
-import { testDatabaseConnection } from "./repositories/authRepository.js";
+import healthRoutes from "./routes/healthRoutes.js";
 const app = express();
-const PORT = 3030;
 
 app.use(
   cors({
@@ -36,34 +35,6 @@ app.use(express.json());
 // Collego il router di autenticazione aggiungo /auth in modo da dover chiamare solo /auth/signup e auth/login
 app.use("/auth", authRoutes);
 
-app.get("/health", async (req, res) => {
-  try {
-    await testDatabaseConnection();
-    res.status(200).json({
-      status: "ok",
-      check: {
-        app: "running",
-        database: "connected",
-      },
-    });
-  } catch (error) {
-    console.error("Health check failed: ", error);
-    res.status(500).json({
-      status: "error",
-      check: {
-        app: "running",
-        database: "disconnected",
-      },
-    });
-  }
-});
+app.get("/health", healthRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Auth app listening on port ${PORT}`);
-  console.log(`
-          Route available:
-          '/' return Hello auth-service!
-          '/auth/signup (POST)
-          '/auth/login' (POST)
-      `);
-});
+export default app;

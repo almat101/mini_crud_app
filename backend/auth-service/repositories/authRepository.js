@@ -2,7 +2,7 @@ import { Pool } from "pg";
 import dotenv from "dotenv";
 
 dotenv.config({ silent: true });
-
+// console.log(process.env);
 let pool;
 
 // prima la pool veniva creata subito appena partiva l app, ora viene creata in modo ritardato(lazy) solo quando una funzione repository viene chiamata.
