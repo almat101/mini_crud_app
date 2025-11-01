@@ -24,29 +24,34 @@ export const signup = async (req, res) => {
     let userJoi = req.body;
     //verifica che l input sia valido in base allo schema Joi signup
     validateUser = await validateSignupData(userJoi);
-  } catch (err) {
-    res.status(400).json({ message: "Validation Error", error: err.details });
-    return;
+  } catch {
+    return res.status(400).json({ message: "Validation Error" });
   }
-
-  // Secondo try catch per criptare la password e salvare tutto lo user  nel DB
+  // secondo try catch per criptare la password e salvare tutto lo user  nel DB
+  let hash;
   try {
     // hasha la password con  bcrypt
-    const hash = await hashPassword(validateUser.password);
-
-    // esegue una query preventiva per controllare se un utente o email sono gia presenti nel db
-    const prev_query = await executePrevQuery(
+    hash = await hashPassword(validateUser.password);
+  } catch {
+    return res.status(500).json({ message: "Hashing Error" });
+  }
+  // terzo try catch per eseguire una query preventiva per controllare se un utente o email sono gia presenti nel db
+  let prev_query;
+  try {
+    prev_query = await executePrevQuery(
       validateUser.username,
       validateUser.email
     );
-
     if (prev_query.rowCount == 1)
       // prev_query.rowCount ritorna uno se c'e una corrispondenza, ossia se esiste gia un utente con lo stesso user e/o email
       return res
         .status(409)
         .json({ message: "Username or Email already exists" });
-
-    // Inserimento dello user nel db
+  } catch {
+    return res.status(500).json({ message: "ExecutePrevQuery Error" });
+  }
+  // quarto try catch per insire lo user nel db
+  try {
     const result = await createUser(
       validateUser.username,
       validateUser.email,
@@ -55,10 +60,9 @@ export const signup = async (req, res) => {
 
     return res
       .status(201)
-      .send({ message: "User created", product: result.rows[0] });
-  } catch (error) {
-    console.error("Signup Error:", error);
-    res.status(500).json({ message: "Internal server error" });
+      .send({ message: "User created", user: result.rows[0] });
+  } catch {
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -79,50 +83,61 @@ export const login = async (req, res) => {
     //verifica che l input sia valido in base allo schema Joi login
     validateUserLogin = await validateUserCredentials(userJoiLogin);
   } catch (err) {
-    res.status(400).json({ message: "Validation Error", error: err.details });
-    return;
+    return res
+      .status(400)
+      .json({ message: "Validation Error", error: err.details });
   }
 
+  // cerca l'utente che fa login in base all'email
+  let query;
+  let userFound;
   try {
-    // cerca l'utente che fa login in base all'email
-    const query = await findUser(validateUserLogin.email);
+    query = await findUser(validateUserLogin.email);
     if (query.rowCount == 0)
       return res.status(401).json({ message: "Unauthorized user" });
-    const userFound = query.rows[0];
+    userFound = query.rows[0];
+  } catch {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+  //Usa bcrypt.compare per confrontare la password in plaintext con la password hashata
 
-    //Usa bcrypt.compare per confrontare la password in plaintext con la password hashata
-    const compared_password = await comparePasswords(
+  let compared_password;
+  try {
+    compared_password = await comparePasswords(
       validateUserLogin.password,
       userFound.password_hash
     );
-
     // 401 se non coincidono
     if (!compared_password)
       return res.status(401).json({ message: "Unauthorized wrong password" });
-
+  } catch {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+  let payload;
+  try {
     // creazione del payload con i dati da includere nel token jwt
-    const payload = {
+    payload = {
       userId: userFound.id,
       username: userFound.username,
       email: userFound.email,
     };
-    try {
-      //validazion payload con Joi schema
-      validateJwtPayload(payload);
-      // Generazione token JWT con jsonwebtoken
-      // const token =  jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }); //scadenza 7giorni dopo devo implementare al logout una blacklist dei token
-      const token = generateJwtToken(payload, process.env.JWT_SECRET, {
-        expiresIn: "7d",
-      });
-      // Restituzione del token al browser con ritorno 200 ok
-      res
-        .status(200)
-        .json({ message: "Login succesful", token: token, id: userFound.id });
-    } catch (error) {
-      res.status(400).json({ message: error.message });
-      return;
-    }
+    //validazion payload con Joi schema
+    validateJwtPayload(payload);
   } catch {
-    res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({ message: "Internal server error" });
+  }
+  let token;
+  try {
+    // Generazione token JWT con jsonwebtoken
+    // const token =  jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }); //scadenza 7giorni dopo devo implementare al logout una blacklist dei token
+    token = generateJwtToken(payload, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    // Restituzione del token al browser con ritorno 200 ok
+    return res
+      .status(200)
+      .json({ message: "Login succesful", token: token, id: userFound.id });
+  } catch {
+    return res.status(500).json({ message: "Internal server error" });
   }
 };

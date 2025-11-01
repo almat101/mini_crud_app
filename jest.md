@@ -59,3 +59,9 @@ Jest and ESM :
 https://jestjs.io/docs/ecmascript-modules
 
 To use ESM (ECMAScript Modules) with Node.js, Express, and Jest for testing, several configuration steps and considerations are required due to Jest's experimental support for ESM. The primary challenge lies in module mocking, as the standard jest.mock() function does not work reliably with ESM due to its static import evaluation and immutable nature.  Instead, Jest provides the jest.unstable_mockModule() API for mocking ESM modules, which requires the factory function to be explicitly defined and must be called before importing the module using dynamic import().  For a project using TypeScript with ESM, the ts-jest transformer can be configured to emit ESM by setting useESM: true in the tsconfig.json and ensuring the transform property in Jest is set to an empty object (transform: {}) to prevent unwanted code transformation.  This allows Jest to directly execute ESM files. The package.json must also include "type": "module" to enable ESM mode in Node.js.  To run tests, Node.js must be started with the --experimental-vm-modules flag, which can be added to the test script in package.json as node --experimental-vm-modules node_modules
+
+JEST + supertest configuration + examples
+https://www.albertgao.com/2017/05/24/how-to-test-expressjs-with-jest-and-supertest/
+
+jest.unstable_mockModule
+https://jestjs.io/docs/ecmascript-modules
