@@ -62,3 +62,6 @@ To use ESM (ECMAScript Modules) with Node.js, Express, and Jest for testing, sev
 
 JEST + supertest configuration + examples
 https://www.albertgao.com/2017/05/24/how-to-test-expressjs-with-jest-and-supertest/
+
+jest.unstable_mockModule
+https://jestjs.io/docs/ecmascript-modules
