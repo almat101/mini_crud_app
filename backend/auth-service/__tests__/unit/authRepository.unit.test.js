@@ -1,15 +1,20 @@
 import { describe, expect, jest, test } from "@jest/globals";
-import { hashPassword } from "../../services/authService.js";
+import { hashPassword } from "../services/authService.js";
 // Mock di pg
 const mockQuery = jest.fn();
-jest.unstable_mockModule("pg", () => {
-  const mPool = {
-    query: mockQuery,
-    connect: jest.fn(),
-    end: jest.fn(),
-  };
-  return { Pool: jest.fn(() => mPool) };
-});
+
+// Create a mock pool object that mimics the pg Pool interface
+// This replaces the real database pool with test doubles
+// mockPool simula la pool e la connesione al database
+const mockPool = {
+  query: mockQuery,
+  connect: jest.fn(),
+  end: jest.fn(),
+};
+
+jest.unstable_mockModule("../config/database.js", () => ({
+  getPool: () => mockPool, // Replace real getPool with function that returns our mock
+}));
 
 // Importa il repository solo dopo aver configurato il mock
 const { findUser, testDatabaseConnection, executePrevQuery, createUser } =
