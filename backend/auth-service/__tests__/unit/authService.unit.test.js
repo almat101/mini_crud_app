@@ -5,7 +5,7 @@ import {
   validateJwtPayload,
   validateUserCredentials,
   validateSignupData,
-} from "../services/authService.js";
+} from "../../services/authService.js";
 import jwt from "jsonwebtoken";
 
 describe("unit test for generateJwtToken", () => {
