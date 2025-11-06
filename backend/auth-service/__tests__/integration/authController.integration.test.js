@@ -1,7 +1,7 @@
 import { describe, expect, jest, test } from "@jest/globals";
 
 // Mock the repository module before importing app.js
-jest.unstable_mockModule("../repositories/authRepository.js", () => ({
+jest.unstable_mockModule("../../repositories/authRepository.js", () => ({
   createUser: jest.fn(),
   executePrevQuery: jest.fn(),
   findUser: jest.fn(),
@@ -13,7 +13,7 @@ jest.unstable_mockModule("../repositories/authRepository.js", () => ({
   // .mockResolvedValueOnce({}),
 }));
 
-jest.unstable_mockModule("../services/authService.js", () => ({
+jest.unstable_mockModule("../../services/authService.js", () => ({
   validateSignupData: jest.fn(),
   comparePasswords: jest.fn(),
   // .mockResolvedValueOnce(true),
@@ -32,7 +32,7 @@ jest.unstable_mockModule("../services/authService.js", () => ({
 import request from "supertest";
 
 const { createUser, executePrevQuery, findUser, testDatabaseConnection } =
-  await import("../repositories/authRepository.js");
+  await import("../../repositories/authRepository.js");
 
 const {
   validateSignupData,
@@ -41,10 +41,10 @@ const {
   validateJwtPayload,
   generateJwtToken,
   hashPassword,
-} = await import("../services/authService.js");
-const { default: app } = await import("../app.js");
+} = await import("../../services/authService.js");
+const { default: app } = await import("../../app.js");
 
-describe("Unit test for /signup", () => {
+describe("Integration test for /signup", () => {
   beforeEach(() => {
     //mockReset resets the mock implementation for grant isolation in each tests
     createUser.mockReset();

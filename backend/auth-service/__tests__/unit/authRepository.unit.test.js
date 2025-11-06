@@ -1,5 +1,5 @@
 import { describe, expect, jest, test } from "@jest/globals";
-import { hashPassword } from "../services/authService.js";
+import { hashPassword } from "../../services/authService.js";
 // Mock di pg
 const mockQuery = jest.fn();
 jest.unstable_mockModule("pg", () => {
@@ -13,7 +13,7 @@ jest.unstable_mockModule("pg", () => {
 
 // Importa il repository solo dopo aver configurato il mock
 const { findUser, testDatabaseConnection, executePrevQuery, createUser } =
-  await import("../repositories/authRepository.js");
+  await import("../../repositories/authRepository.js");
 
 describe("Unit test for findUser", () => {
   beforeEach(() => {
