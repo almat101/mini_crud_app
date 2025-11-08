@@ -141,3 +141,23 @@ export const login = async (req, res) => {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
+
+export const demoLogin = async (req, res) => {
+  try {
+    let demo = await findUser("demo@demo.com");
+    let demo_user = demo.rows[0];
+    let payload = {
+      userId: demo_user.id,
+      username: demo_user.username,
+      email: demo_user.email,
+    };
+    let token = generateJwtToken(payload, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+    return res
+      .status(200)
+      .json({ message: "Login succesful", token: token, id: payload.id });
+  } catch {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
