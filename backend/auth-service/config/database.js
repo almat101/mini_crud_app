@@ -1,8 +1,10 @@
 import { Pool } from "pg";
-import dotenv from "dotenv";
+// import dotenv from "dotenv";
 
-dotenv.config({ silent: true });
+// dotenv.config({ silent: true });
 // console.log(process.env);
+// console.log(process.cwd());
+
 let pool;
 
 // Lazy initialization pattern - pool is created only on first getPool() call
