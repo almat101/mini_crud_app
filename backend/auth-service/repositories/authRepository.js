@@ -1,4 +1,4 @@
-import { getPool } from "../config/database";
+import { getPool } from "../config/database.js";
 
 export async function testDatabaseConnection() {
   const pool = getPool();
