@@ -22,7 +22,7 @@
 #   - Configure environment and secrets
 #   - Build and start Docker Compose services
 ---
-- name: Deploy mini_transcendence application
+- name: Deploy mini_crud application
 
   hosts: ec2_hosts
   become: yes
