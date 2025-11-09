@@ -4,10 +4,10 @@ services:
     build: 
       context: ./frontend/
       dockerfile: Dockerfile
-    container_name: frontend
+    container_name: frontend-crud
     env_file: ".env"
     ports:
-      - 80:80
+      - 8080:80
     restart: unless-stopped
     depends_on:
       auth-service:
@@ -27,10 +27,10 @@ services:
     build: 
       context: ./backend/auth-service
       dockerfile: Dockerfile
-    container_name: auth-service
+    container_name: auth-service-crud
     env_file: ".env"
     ports:
-      - 3030:3030
+      - 4030:3030
     restart: unless-stopped
     depends_on:
       db_auth:
@@ -48,10 +48,10 @@ services:
     build: 
       context: ./backend/products-service
       dockerfile: Dockerfile
-    container_name: products-service
+    container_name: products-service-crud
     env_file: ".env"
     ports:
-      - 3020:3020
+      - 4020:3020
     restart: unless-stopped
     depends_on:
       db_products:
@@ -67,7 +67,7 @@ services:
 
   db_auth:
     image: postgres:17-alpine3.22
-    container_name: db_auth
+    container_name: db_auth-crud
     restart: always
     env_file: ".env" 
     environment:
@@ -75,7 +75,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_AUTH}
       - POSTGRES_DB=${POSTGRES_DB_AUTH}
     ports:
-      - "5433:5432"
+      - "5440:5432"
     volumes:
       - postgres_auth_data:/var/lib/postgresql/data
       - ./backend/auth-service/init-scripts:/docker-entrypoint-initdb.d
@@ -90,7 +90,7 @@ services:
 
   db_products:
     image: postgres:17-alpine3.22
-    container_name: db_products
+    container_name: db_products-crud
     restart: always
     env_file: ".env"
     environment:
@@ -98,7 +98,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_PRODUCTS}
       - POSTGRES_DB=${POSTGRES_DB_PRODUCTS}
     ports:
-      - "5432:5432"
+      - "5441:5432"
     volumes:
       - postgres_products_data:/var/lib/postgresql/data
       - ./backend/products-service/init-scripts:/docker-entrypoint-initdb.d
@@ -113,7 +113,7 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: cloudflared
+    container_name: cloudflared-crud
     restart: unless-stopped
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     networks:
