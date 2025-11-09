@@ -127,7 +127,7 @@ jobs:
           ansible-galaxy collection install community.docker
       
       - name: Export Hetzner VPS IP to environment
-        run: echo "HETZNER_VPS_IP=${{ secrets.HETZNER_VPS_IP }}" >> $GITHUB_ENV
+        run: echo "HETZNER_IP=${{ secrets.HETZNER_VPS_IP }}" >> $GITHUB_ENV
         
       - name: Write ansible vault password to a file
         run: echo "${{ secrets.ANSIBLE_VAULT_PASS }}" > ansible/.vault_pass.txt
