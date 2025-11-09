@@ -1,0 +1,142 @@
+name: CI/CD Pipeline for mini_crud_app
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  ci:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Install dependencies and run tests for auth-service
+        run: |
+            cd backend/auth-service
+            npm install
+            npm run test:unit
+            npm run test:integration
+
+
+    #   - name: Generate dummy .env for CI
+    #     run: |
+    #       echo "POSTGRES_USER_AUTH=test" >> .env
+    #       echo "POSTGRES_PASSWORD_AUTH=password" >> .env
+    #       echo "POSTGRES_DB_AUTH=db_auth" >> .env
+    #       echo "POSTGRES_PORT_AUTH=5432" >> .env
+    #       echo "POSTGRES_HOST_AUTH=db_auth" >> .env
+
+    #       echo "POSTGRES_USER_PRODUCTS=test" >> .env
+    #       echo "POSTGRES_PASSWORD_PRODUCTS=password" >> .env
+    #       echo "POSTGRES_DB_PRODUCTS=db_products" >> .env
+    #       echo "POSTGRES_PORT_PRODUCTS=5432" >> .env
+    #       echo "POSTGRES_HOST_PRODUCTS=db_products" >> .env
+
+    #       echo "JWT_SECRET=JWT_EXAMPLE_TEST" >> .env
+    #       echo "REACT_APP_IS_DEV=false" >> .env
+
+    #       echo "CLOUDFLARE_TUNNEL_TOKEN=dummy" >> .env
+
+    ###TODO docker HUB build images
+
+    #   - name: Build Docker images
+    #     run: docker compose build
+
+    #   - name: Integration Test( backend auth-service)
+    #     run: docker compose run --rm auth-service python manage.py test auth_app
+
+    #   - name: Clean up containers
+    #     run: docker compose down
+
+    #   - name: Login to Docker Hub
+    #     uses: docker/login-action@v3
+    #     with:
+    #       username: ${{ secrets.DOCKERHUB_USERNAME }}
+    #       password: ${{ secrets.DOCKERHUB_PA_TOKEN }} #expire in 90 days!
+          
+    #   - name: Build and push proxy image
+    #     uses: docker/build-push-action@v5
+    #     with:
+    #       context: ./proxy
+    #       file: ./proxy/Dockerfile
+    #       push: true
+    #       tags: |
+    #         ${{ secrets.DOCKERHUB_USERNAME }}/proxy:latest
+    #         ${{ secrets.DOCKERHUB_USERNAME }}/proxy:${{ github.sha }}
+
+    #   - name: Build and push auth-service image
+    #     uses: docker/build-push-action@v5
+    #     with:
+    #       context: ./backend/auth_service
+    #       file: ./backend/auth_service/Dockerfile
+    #       push: true
+    #       tags: |
+    #         ${{ secrets.DOCKERHUB_USERNAME }}/auth-service:latest
+    #         ${{ secrets.DOCKERHUB_USERNAME }}/auth-service:${{ github.sha }}
+
+    #   - name: Build and push tournament-service image
+    #     uses: docker/build-push-action@v5
+    #     with:
+    #       context: ./backend/tournament-service
+    #       file: ./backend/tournament-service/Dockerfile
+    #       push: true
+    #       tags: |
+    #         ${{ secrets.DOCKERHUB_USERNAME }}/tournament-service:latest
+    #         ${{ secrets.DOCKERHUB_USERNAME }}/tournament-service:${{ github.sha }}
+
+    #   - name: Build and push history-service image
+    #     uses: docker/build-push-action@v5
+    #     with:
+    #       context: ./backend/history
+    #       file: ./backend/history/Dockerfile
+    #       push: true
+    #       tags: |
+    #         ${{ secrets.DOCKERHUB_USERNAME }}/history-service:latest
+    #         ${{ secrets.DOCKERHUB_USERNAME }}/history-service:${{ github.sha }}
+
+
+  ### Continuous deployment commented out to enable manual trigger (Continuous Delivery)
+  ### This gives me more control because I can choose what app goes live on my single AWS free tier
+  ### The deployment process is still automated via Ansible, just manually triggered
+
+  ### CD enabled with ansible playbook
+  cd:
+    name: Continuous Deployment
+    runs-on: ubuntu-latest
+    needs: ci
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Create venv and install Ansible and community.docker
+        run: |
+          cd ansible
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install ansible
+          ansible-galaxy collection install community.docker
+
+      - name: Write ansible vault password to a file
+        run: echo "${{ secrets.ANSIBLE_VAULT_PASS }}" > ansible/.vault_pass.txt
+
+      - name: Write SSH key for runner
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HETZNER_SSH_KEY }}" >> ~/.ssh/id_hetzner
+          chmod 400 ~/.ssh/id_hetzner
+
+      - name: Run ansible Deploy playbook
+        run: |
+          cd ansible
+          source venv/bin/activate
+          ansible-playbook playbooks/deploy.yml --vault-password-file .vault_pass.txt  -e 'ansible_ssh_common_args="-o StrictHostKeyChecking=no"'
