@@ -82,10 +82,8 @@ export const login = async (req, res) => {
 
     //verifica che l input sia valido in base allo schema Joi login
     validateUserLogin = await validateUserCredentials(userJoiLogin);
-  } catch (err) {
-    return res
-      .status(400)
-      .json({ message: "Validation Error", error: err.details });
+  } catch {
+    return res.status(400).json({ message: "Validation Error" });
   }
 
   // cerca l'utente che fa login in base all'email
@@ -97,7 +95,10 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized user" });
     userFound = query.rows[0];
   } catch {
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({
+      message: "Internal server error",
+      context: "Error on findUser",
+    });
   }
   //Usa bcrypt.compare per confrontare la password in plaintext con la password hashata
 
@@ -111,7 +112,10 @@ export const login = async (req, res) => {
     if (!compared_password)
       return res.status(401).json({ message: "Unauthorized wrong password" });
   } catch {
-    return res.status(500).json({ message: "Internal server error" });
+    return res.status(500).json({
+      message: "Internal server error",
+      context: "Error on comparePasswords",
+    });
   }
   let payload;
   try {
@@ -124,7 +128,9 @@ export const login = async (req, res) => {
     //validazion payload con Joi schema
     validateJwtPayload(payload);
   } catch {
-    return res.status(500).json({ message: "Internal server error" });
+    return res
+      .status(500)
+      .json({ message: "Internal server error", context: "Invalid payload" });
   }
   let token;
   try {
@@ -136,7 +142,7 @@ export const login = async (req, res) => {
     // Restituzione del token al browser con ritorno 200 ok
     return res
       .status(200)
-      .json({ message: "Login succesful", token: token, id: userFound.id });
+      .json({ message: "Login successful", token: token, id: userFound.id });
   } catch {
     return res.status(500).json({ message: "Internal server error" });
   }
