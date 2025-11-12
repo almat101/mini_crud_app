@@ -4,6 +4,7 @@ import helmet from "helmet";
 import authRoutes from "./routes/authRoutes.js";
 import cors from "cors";
 import healthRoutes from "./routes/healthRoutes.js";
+import cookieParser from "cookie-parser";
 const app = express();
 
 app.use(
@@ -18,6 +19,8 @@ app.use(
   })
 );
 
+app.use(cookieParser());
+
 // middleware logger utile per stampare info sulla richiesta es "GET /about 200 1.896 ms - 34"
 app.use(morgan("dev"));
 
@@ -31,6 +34,11 @@ app.use(express.json());
 // app.get('/', async (req, res) => {
 //   res.send('Hello auth-service!');
 // });
+
+app.get("/test-cookies", (req, res) => {
+  console.log("Cookies:", req.cookies); // Print cookies to the console
+  res.json({ cookies: req.cookies }); // Return cookies in the response for testing
+});
 
 // Collego il router di autenticazione aggiungo /auth in modo da dover chiamare solo /auth/signup e auth/login
 app.use("/auth", authRoutes);
