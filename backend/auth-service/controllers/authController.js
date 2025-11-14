@@ -150,20 +150,33 @@ export const login = async (req, res) => {
 
 export const demoLogin = async (req, res) => {
   try {
-    let demo = await findUser("demo@demo.com");
-    let demo_user = demo.rows[0];
-    let payload = {
+    const demo = await findUser("demo@demo.com");
+    const demo_user = demo.rows[0];
+    const payload = {
       userId: demo_user.id,
       username: demo_user.username,
       email: demo_user.email,
     };
-    let token = generateJwtToken(payload, process.env.JWT_SECRET, {
+    const token = generateJwtToken(payload, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
-    return res
-      .status(200)
-      .json({ message: "Login succesful", token: token, id: payload.id });
+
+    setJwtCookie(res, token);
+    return res.status(200).json({ message: "Login successful" });
   } catch {
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const setJwtCookie = (res, token) => {
+  try {
+    res.cookie("token", token, {
+      // httpOnly: true,
+      secure: process.env.NODE_ENV === "prod",
+      sameSite: "strict",
+      maxAge: 1000 * 60 * 60,
+    });
+  } catch {
+    throw new Error("Failed to set jwt cookie");
   }
 };

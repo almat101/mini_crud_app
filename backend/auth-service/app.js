@@ -15,7 +15,7 @@ app.use(
       "https://crud1.alematta.com",
     ], //cors per il frontend per sviluppo locale e per nginx in produzione
     methods: ["GET", "POST", "PATCH", "DELETE"],
-    // credentials: true,
+    credentials: true, // important to allow cookies to be sent and received
   })
 );
 

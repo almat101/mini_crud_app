@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 // import { AuthContext } from '../context/AuthContext';
-import { Interceptor } from '../interceptor/axiosInterceptor';
+// import { Interceptor } from '../interceptor/axiosInterceptor';
 
 import { Alert, Button, Card, Col, Container, Row, Modal , Form } from 'react-bootstrap';
 
@@ -10,7 +10,7 @@ const URL = isDev ? 'http://localhost:3020/api/products' :  '/api/products';
 
 
 //invocazione dell interceptor che aggiunge il token bearer ad ogni richiesta
-Interceptor();
+// Interceptor();
 
 const ProductPage = () => {
           

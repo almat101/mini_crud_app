@@ -59,17 +59,19 @@ const LoginForm = () => {
   const handleDemoLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.get(`${DEMO_URL}`);
+      const response = await axios.get(`${DEMO_URL}`, {
+        withCredentials: true,
+      });
+
       setMessage("Demo login successful!");
-
-      const { token, id } = response.data;
-
-      saveId(id);
-
-      login(token);
+      // const { id } = response.data;
+      // console.log(response.data);
+      // saveId(id);
+      // login(token);
+      
       setVariant("success");
-
-      navigate("/products", { replace: true });
+      console.log(document.cookie);
+      // navigate("/products", { replace: true });
     } catch (error) {
       setMessage(error.response?.data?.message || "Signup failed!"); // Mostra un messaggio di errore
       setVariant("danger");
