@@ -33,21 +33,15 @@ const LoginForm = () => {
     e.preventDefault();
     // console.log("Form data:", FormData);
     try {
-      const response = await axios.post(`${URL}`, FormData, {
+      await axios.post(`${URL}`, FormData, {
+        withCredentials: true,
         headers: { "Content-Type": "application/json" },
       });
       setMessage("Signup successful!");
-      //destrucuring da un oggetto
-      const { token, id } = response.data;
-      //salvo id tramite context
-      saveId(id);
       //salvo il token tramite context
-      login(token);
+      // login(token);
+      console.log("handleSubmit", document.cookie);
       setVariant("success");
-      //piccolo delay per navigare a /products
-      // setTimeout(() => {
-      //   navigate('/products');
-      // }, 500);
       navigate("/products", { replace: true });
     } catch (error) {
       setMessage(error.response?.data?.message || "Signup failed!"); // Mostra un messaggio di errore
@@ -59,19 +53,13 @@ const LoginForm = () => {
   const handleDemoLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.get(`${DEMO_URL}`, {
+      await axios.get(`${DEMO_URL}`, {
         withCredentials: true,
       });
-
       setMessage("Demo login successful!");
-      // const { id } = response.data;
-      // console.log(response.data);
-      // saveId(id);
-      // login(token);
-      
       setVariant("success");
-      console.log(document.cookie);
-      // navigate("/products", { replace: true });
+      console.log("handledemologin", document.cookie);
+      navigate("/products", { replace: true });
     } catch (error) {
       setMessage(error.response?.data?.message || "Signup failed!"); // Mostra un messaggio di errore
       setVariant("danger");

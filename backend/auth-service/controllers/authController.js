@@ -139,12 +139,12 @@ export const login = async (req, res) => {
     // Generazione token JWT con jsonwebtoken
     // const token =  jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }); //scadenza 7giorni dopo devo implementare al logout una blacklist dei token
     token = generateJwtToken(payload, process.env.JWT_SECRET, {
-      expiresIn: "7d",
+      expiresIn: "7d", // at the moment i have to use 7day maxAge then i will implement a refresh token endpoint
     });
-    // Restituzione del token al browser con ritorno 200 ok
-    return res
-      .status(200)
-      .json({ message: "Login successful", token: token, id: userFound.id });
+
+    setJwtCookie(res, token);
+
+    return res.status(200).json({ message: "Login successful" });
   } catch {
     return res.status(500).json({ message: "Internal server error" });
   }
@@ -160,7 +160,7 @@ export const demoLogin = async (_, res) => {
       email: demo_user.email,
     };
     const token = generateJwtToken(payload, process.env.JWT_SECRET, {
-      expiresIn: "7d",
+      expiresIn: "7d", // at the moment i have to use 7day then i will implement a refresh token endpoint
     });
 
     setJwtCookie(res, token);
@@ -176,7 +176,7 @@ export const setJwtCookie = (res, token) => {
       // httpOnly: true,
       secure: process.env.NODE_ENV === "prod",
       sameSite: "strict",
-      maxAge: 1000 * 60 * 60,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // at the moment i have to use 7day maxAge then i will implement a refresh token endpoint
     });
   } catch {
     throw new Error("Failed to set jwt cookie");
