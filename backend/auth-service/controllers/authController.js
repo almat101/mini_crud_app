@@ -1,3 +1,5 @@
+import jwt from "jsonwebtoken";
+
 import {
   executePrevQuery,
   createUser,
@@ -148,7 +150,7 @@ export const login = async (req, res) => {
   }
 };
 
-export const demoLogin = async (req, res) => {
+export const demoLogin = async (_, res) => {
   try {
     const demo = await findUser("demo@demo.com");
     const demo_user = demo.rows[0];
@@ -178,5 +180,38 @@ export const setJwtCookie = (res, token) => {
     });
   } catch {
     throw new Error("Failed to set jwt cookie");
+  }
+};
+
+export const checkIsAuth = async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    console.log(token);
+    if (!token) return res.status(401).json({ isAuth: false });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded === null || decoded === undefined)
+      return res.status(401).json({ isAuth: false });
+    return res.status(200).json({
+      isAuth: true,
+      user: {
+        id: decoded.userId,
+        username: decoded.username,
+        email: decoded.email,
+      },
+    });
+  } catch {
+    return res.status(500).json({ message: "Internal server errror" });
+  }
+};
+
+export const logout = async (_, res) => {
+  try {
+    res.clearCookie("token", {
+      secure: process.env.NODE_ENV === "prod",
+      sameSite: "strict",
+    });
+    return res.status(200).json({ message: "User logged out" });
+  } catch {
+    return res.status(500).json({ message: "Internal server errror" });
   }
 };

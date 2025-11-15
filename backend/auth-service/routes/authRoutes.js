@@ -1,6 +1,12 @@
 // Importo Router
 import { Router } from "express";
-import { login, signup, demoLogin } from "../controllers/authController.js";
+import {
+  login,
+  signup,
+  demoLogin,
+  checkIsAuth,
+  logout,
+} from "../controllers/authController.js";
 
 // Definisco una costante router
 const router = Router();
@@ -13,6 +19,10 @@ router.post("/signup", signup);
 router.post("/login", login);
 
 router.get("/demo", demoLogin);
+
+router.get("/checkIsAuth", checkIsAuth);
+
+router.post("/logout", logout);
 
 //esporto il router per prenderlo in app.js
 export default router;
