@@ -93,6 +93,7 @@ const LoginForm = () => {
             value={FormData.email}
             onChange={handleChange}
             placeholder="Enter email"
+            autoComplete="email"
           />
         </Form.Group>
 
@@ -104,6 +105,7 @@ const LoginForm = () => {
             value={FormData.password}
             onChange={handleChange}
             placeholder="Password"
+            autoComplete="current-password"
           />
         </Form.Group>
         <Button variant="primary" type="submit" className="w-100">
