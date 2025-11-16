@@ -1,13 +1,6 @@
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import {
-  Container,
-  Nav,
-  Navbar,
-  NavDropdown,
-  Toast,
-  Alert,
-} from "react-bootstrap";
+import { Container, Nav, Navbar, NavDropdown, Toast } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useState } from "react";
@@ -20,7 +13,7 @@ const BSNavbar = () => {
   const [variant, setVariant] = useState("");
   const [showToast, setShowToast] = useState(false);
 
-  const { isAuth, logout, deleteId } = useContext(AuthContext);
+  const { isAuth, logout } = useContext(AuthContext);
 
   const navigate = useNavigate();
 
@@ -28,7 +21,7 @@ const BSNavbar = () => {
     e.preventDefault();
     try {
       //token is removed by calling /logout that clear the cookie with the token JWT
-      const response = await axios.post(
+      await axios.post(
         `${URL}`,
         //handle login has empty body if i forgot this { empty body}, withCredendial:true is sent as the body and the cookie is not cleared
         {},
@@ -36,6 +29,7 @@ const BSNavbar = () => {
           withCredentials: true,
         }
       );
+      logout(); // agiorna l'authcontext
       setMessage("Logout successful!");
       setVariant("success");
       setShowToast(true);
@@ -67,16 +61,18 @@ const BSNavbar = () => {
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
-              <Nav.Link href="/login">Login</Nav.Link>
-              <Nav.Link href="/signup">Signup</Nav.Link>
-              <Nav.Link href="/products">Products</Nav.Link>
+              {!isAuth && <Nav.Link href="/login">Login</Nav.Link>}
+              {!isAuth && <Nav.Link href="/signup">Signup</Nav.Link>}
+              {isAuth && <Nav.Link href="/products">Products</Nav.Link>}
             </Nav>
             <Nav className="ms-auto">
-              <NavDropdown title="Profile" id="profile">
-                <NavDropdown.Item onClick={handleLogout}>
-                  Logout
-                </NavDropdown.Item>
-              </NavDropdown>
+              {isAuth && (
+                <NavDropdown title="Profile" id="profile">
+                  <NavDropdown.Item onClick={handleLogout}>
+                    Logout
+                  </NavDropdown.Item>
+                </NavDropdown>
+              )}
             </Nav>
           </Navbar.Collapse>
         </Container>

@@ -3,13 +3,14 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { Alert, Container, Form, Button } from "react-bootstrap";
+import { authorize } from "../context/AuthContext.js";
 
 const isDev = process.env.REACT_APP_IS_DEV === "true";
 const URL = isDev ? "http://localhost:3030/auth/login" : "/auth/login";
 const DEMO_URL = isDev ? "http://localhost:3030/auth/demo" : "/auth/demo";
 
 const LoginForm = () => {
-  const { login, saveId } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
 
   const navigate = useNavigate();
   const [FormData, setFormData] = useState({
@@ -29,7 +30,7 @@ const LoginForm = () => {
   };
 
   // Gestione del submit del form
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     // console.log("Form data:", FormData);
     try {
@@ -37,9 +38,8 @@ const LoginForm = () => {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
       });
+      login(); //aggiorna l'authcontext
       setMessage("Signup successful!");
-      //salvo il token tramite context
-      // login(token);
       console.log("handleSubmit", document.cookie);
       setVariant("success");
       navigate("/products", { replace: true });
@@ -56,6 +56,7 @@ const LoginForm = () => {
       await axios.get(`${DEMO_URL}`, {
         withCredentials: true,
       });
+      login();
       setMessage("Demo login successful!");
       setVariant("success");
       console.log("handledemologin", document.cookie);
@@ -72,7 +73,7 @@ const LoginForm = () => {
       className="d-flex justify-content-center align-items-center"
       style={{ minHeight: "80vh" }}
     >
-      <Form className="p-4 border rounded shadow" onSubmit={handleSubmit}>
+      <Form className="p-4 border rounded shadow" onSubmit={handleLogin}>
         <Form.Group className="mb-3" controlId="formBasicEmail">
           <Form.Label>Email address</Form.Label>
           <Form.Control
