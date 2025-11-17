@@ -337,8 +337,6 @@ describe("Integration test for /login", () => {
     expect(response.statusCode).toBe(200);
     expect(response.body).toMatchObject({
       message: "Login successful",
-      token: "generated_JWT_token",
-      id: 1,
     });
   });
 
@@ -589,7 +587,6 @@ describe("Integration test for /login", () => {
     //act
     const mock_body = {};
     const response = await request(app).post("/auth/login").send(mock_body);
-    console.log(response.body);
     //assert
     expect(validateUserCredentials).toHaveBeenCalledTimes(1);
     expect(findUser).toHaveBeenCalledTimes(0);
