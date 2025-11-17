@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 import { Pool } from 'pg'
 import cors from 'cors';
 import jwt from 'jsonwebtoken'
-
+import cookieParser from "cookie-parser";
 
 const app = express();
 const port = 3020;
@@ -17,14 +17,19 @@ dotenv.config();
 app.use(cors({
   origin : ['http://localhost:3000','http://localhost','https://crud1.alematta.com'], //cors per il frontend per sviluppo locale e per nginx in produzione
   methods : [ 'GET', 'POST', 'PATCH', 'DELETE'],
-  // credentials: true, 
+  credentials: true,
   }
 ));
 
+app.use(cookieParser());
+
 // Middleware to authenticate requests using JWT, verify token, and extract user info
 function JWT_middleware_decode(req, res, next) {
-  //estraggo il token dall headers della richiesta
-  let token = req.headers.authorization?.split(' ')[1];
+  // ora il token si trova nei cookie non serve piu estrarlo dall header
+  // estraggo il token dall headers della richiesta
+  // let token = req.headers.authorization?.split(' ')[1];
+  const token = req.cookies.token;
+  console.log("token from middleware", token);
   if (!token)
     return res.status(401).json({ message: "Unauthorized token" });
   try {
@@ -33,6 +38,8 @@ function JWT_middleware_decode(req, res, next) {
       if (decoded === null || decoded === undefined)
           return res.status(401).json({ "message": "Unauthorized: Invalid or expired token" });
       req.user = decoded;
+      //req.user now contains all users field like id username email ecc
+      // console.log(req.user);
   } catch (error) {
       return res.status(401).json({ message : "Internal token", error_message: error})
   }

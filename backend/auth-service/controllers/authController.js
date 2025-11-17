@@ -1,3 +1,5 @@
+import jwt from "jsonwebtoken";
+
 import {
   executePrevQuery,
   createUser,
@@ -137,33 +139,79 @@ export const login = async (req, res) => {
     // Generazione token JWT con jsonwebtoken
     // const token =  jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }); //scadenza 7giorni dopo devo implementare al logout una blacklist dei token
     token = generateJwtToken(payload, process.env.JWT_SECRET, {
-      expiresIn: "7d",
+      expiresIn: "7d", // at the moment i have to use 7day maxAge then i will implement a refresh token endpoint
     });
-    // Restituzione del token al browser con ritorno 200 ok
-    return res
-      .status(200)
-      .json({ message: "Login successful", token: token, id: userFound.id });
+
+    setJwtCookie(res, token);
+
+    return res.status(200).json({ message: "Login successful" });
   } catch {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
-export const demoLogin = async (req, res) => {
+export const demoLogin = async (_, res) => {
   try {
-    let demo = await findUser("demo@demo.com");
-    let demo_user = demo.rows[0];
-    let payload = {
+    const demo = await findUser("demo@demo.com");
+    const demo_user = demo.rows[0];
+    const payload = {
       userId: demo_user.id,
       username: demo_user.username,
       email: demo_user.email,
     };
-    let token = generateJwtToken(payload, process.env.JWT_SECRET, {
-      expiresIn: "7d",
+    const token = generateJwtToken(payload, process.env.JWT_SECRET, {
+      expiresIn: "7d", // at the moment i have to use 7day then i will implement a refresh token endpoint
     });
-    return res
-      .status(200)
-      .json({ message: "Login succesful", token: token, id: payload.id });
+
+    setJwtCookie(res, token);
+    return res.status(200).json({ message: "Login successful" });
   } catch {
     return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const setJwtCookie = (res, token) => {
+  try {
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "prod",
+      sameSite: "strict",
+      maxAge: 1000 * 60 * 60 * 24 * 7, // at the moment i have to use 7day maxAge then i will implement a refresh token endpoint
+    });
+  } catch {
+    throw new Error("Failed to set jwt cookie");
+  }
+};
+
+export const checkIsAuth = async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    console.log(token);
+    if (!token) return res.status(200).json({ isAuth: false });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded === null || decoded === undefined)
+      return res.status(401).json({ isAuth: false });
+    return res.status(200).json({
+      isAuth: true,
+      user: {
+        id: decoded.userId,
+        username: decoded.username,
+        email: decoded.email,
+      },
+    });
+  } catch {
+    return res.status(500).json({ message: "Internal server errror" });
+  }
+};
+
+export const logout = async (_, res) => {
+  try {
+    res.clearCookie("token", {
+      secure: process.env.NODE_ENV === "prod",
+      sameSite: "strict",
+    });
+    return res.status(200).json({ message: "User logged out" });
+  } catch {
+    return res.status(500).json({ message: "Internal server errror" });
   }
 };

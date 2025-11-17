@@ -9,7 +9,7 @@ const URL = isDev ? "http://localhost:3030/auth/login" : "/auth/login";
 const DEMO_URL = isDev ? "http://localhost:3030/auth/demo" : "/auth/demo";
 
 const LoginForm = () => {
-  const { login, saveId } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
 
   const navigate = useNavigate();
   const [FormData, setFormData] = useState({
@@ -29,25 +29,16 @@ const LoginForm = () => {
   };
 
   // Gestione del submit del form
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // console.log("Form data:", FormData);
     try {
-      const response = await axios.post(`${URL}`, FormData, {
+      await axios.post(`${URL}`, FormData, {
+        withCredentials: true,
         headers: { "Content-Type": "application/json" },
       });
+      login(); //aggiorna l'authcontext
       setMessage("Signup successful!");
-      //destrucuring da un oggetto
-      const { token, id } = response.data;
-      //salvo id tramite context
-      saveId(id);
-      //salvo il token tramite context
-      login(token);
       setVariant("success");
-      //piccolo delay per navigare a /products
-      // setTimeout(() => {
-      //   navigate('/products');
-      // }, 500);
       navigate("/products", { replace: true });
     } catch (error) {
       setMessage(error.response?.data?.message || "Signup failed!"); // Mostra un messaggio di errore
@@ -59,16 +50,13 @@ const LoginForm = () => {
   const handleDemoLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.get(`${DEMO_URL}`);
+      await axios.get(`${DEMO_URL}`, {
+        withCredentials: true,
+      });
+      login();
       setMessage("Demo login successful!");
-
-      const { token, id } = response.data;
-
-      saveId(id);
-
-      login(token);
       setVariant("success");
-
+      // console.log("handledemologin", document.cookie);
       navigate("/products", { replace: true });
     } catch (error) {
       setMessage(error.response?.data?.message || "Signup failed!"); // Mostra un messaggio di errore
@@ -82,7 +70,7 @@ const LoginForm = () => {
       className="d-flex justify-content-center align-items-center"
       style={{ minHeight: "80vh" }}
     >
-      <Form className="p-4 border rounded shadow" onSubmit={handleSubmit}>
+      <Form className="p-4 border rounded shadow" onSubmit={handleLogin}>
         <Form.Group className="mb-3" controlId="formBasicEmail">
           <Form.Label>Email address</Form.Label>
           <Form.Control
@@ -91,6 +79,7 @@ const LoginForm = () => {
             value={FormData.email}
             onChange={handleChange}
             placeholder="Enter email"
+            autoComplete="email"
           />
         </Form.Group>
 
@@ -102,6 +91,7 @@ const LoginForm = () => {
             value={FormData.password}
             onChange={handleChange}
             placeholder="Password"
+            autoComplete="current-password"
           />
         </Form.Group>
         <Button variant="primary" type="submit" className="w-100">
