@@ -173,7 +173,7 @@ export const demoLogin = async (_, res) => {
 export const setJwtCookie = (res, token) => {
   try {
     res.cookie("token", token, {
-      // httpOnly: true,
+      httpOnly: true,
       secure: process.env.NODE_ENV === "prod",
       sameSite: "strict",
       maxAge: 1000 * 60 * 60 * 24 * 7, // at the moment i have to use 7day maxAge then i will implement a refresh token endpoint

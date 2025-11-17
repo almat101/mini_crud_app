@@ -3,7 +3,6 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { Alert, Container, Form, Button } from "react-bootstrap";
-import { authorize } from "../context/AuthContext.js";
 
 const isDev = process.env.REACT_APP_IS_DEV === "true";
 const URL = isDev ? "http://localhost:3030/auth/login" : "/auth/login";
@@ -32,7 +31,6 @@ const LoginForm = () => {
   // Gestione del submit del form
   const handleLogin = async (e) => {
     e.preventDefault();
-    // console.log("Form data:", FormData);
     try {
       await axios.post(`${URL}`, FormData, {
         withCredentials: true,
@@ -40,7 +38,6 @@ const LoginForm = () => {
       });
       login(); //aggiorna l'authcontext
       setMessage("Signup successful!");
-      console.log("handleSubmit", document.cookie);
       setVariant("success");
       navigate("/products", { replace: true });
     } catch (error) {
@@ -59,7 +56,7 @@ const LoginForm = () => {
       login();
       setMessage("Demo login successful!");
       setVariant("success");
-      console.log("handledemologin", document.cookie);
+      // console.log("handledemologin", document.cookie);
       navigate("/products", { replace: true });
     } catch (error) {
       setMessage(error.response?.data?.message || "Signup failed!"); // Mostra un messaggio di errore
