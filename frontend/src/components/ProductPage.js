@@ -32,7 +32,18 @@ const ProductPage = () => {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
-
+  const commonCategories = [
+    "Electronics",
+    "Furniture",
+    "Accessories",
+    "Clothing",
+    "Home",
+    "Sports",
+    "Toys",
+    "Beauty",
+  ];
+  const [categories] = useState(commonCategories);
+  
   // Fetch all products
   const fetchProducts = useCallback(async () => {
     try {
@@ -185,14 +196,19 @@ const ProductPage = () => {
 
             <Form.Group className="mb-3" controlId="formProductCategory">
               <Form.Label>Category</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter product category"
+              <Form.Select
                 value={addFormData.category}
                 onChange={(e) =>
                   setAddFormData({ ...addFormData, category: e.target.value })
                 }
-              />
+              >
+                <option value="">Select category</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="formProductUserId">
