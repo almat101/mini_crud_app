@@ -43,7 +43,7 @@ const ProductPage = () => {
     "Beauty",
   ];
   const [categories] = useState(commonCategories);
-  
+
   // Fetch all products
   const fetchProducts = useCallback(async () => {
     try {
@@ -118,7 +118,6 @@ const ProductPage = () => {
                     ${product.price}
                   </Card.Subtitle>
                   <Card.Text>Category: {product.category}</Card.Text>
-                  <Card.Text>User ID: {product.user_id}</Card.Text>
 
                   <Button
                     variant="primary"
@@ -211,7 +210,7 @@ const ProductPage = () => {
               </Form.Select>
             </Form.Group>
 
-            <Form.Group className="mb-3" controlId="formProductUserId">
+            {/* <Form.Group className="mb-3" controlId="formProductUserId">
               <Form.Label>User ID</Form.Label>
               <Form.Control
                 type="number"
@@ -221,7 +220,7 @@ const ProductPage = () => {
                   setAddFormData({ ...addFormData, user_id: e.target.value })
                 }
               />
-            </Form.Group>
+            </Form.Group> */}
           </Form>
         </Modal.Body>
         <Modal.Footer>
