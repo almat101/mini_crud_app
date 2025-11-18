@@ -32,6 +32,17 @@ const ProductPage = () => {
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const commonCategories = [
+    "Electronics",
+    "Furniture",
+    "Accessories",
+    "Clothing",
+    "Home",
+    "Sports",
+    "Toys",
+    "Beauty",
+  ];
+  const [categories] = useState(commonCategories);
 
   // Fetch all products
   const fetchProducts = useCallback(async () => {
@@ -107,7 +118,6 @@ const ProductPage = () => {
                     ${product.price}
                   </Card.Subtitle>
                   <Card.Text>Category: {product.category}</Card.Text>
-                  <Card.Text>User ID: {product.user_id}</Card.Text>
 
                   <Button
                     variant="primary"
@@ -185,17 +195,22 @@ const ProductPage = () => {
 
             <Form.Group className="mb-3" controlId="formProductCategory">
               <Form.Label>Category</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter product category"
+              <Form.Select
                 value={addFormData.category}
                 onChange={(e) =>
                   setAddFormData({ ...addFormData, category: e.target.value })
                 }
-              />
+              >
+                <option value="">Select category</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
 
-            <Form.Group className="mb-3" controlId="formProductUserId">
+            {/* <Form.Group className="mb-3" controlId="formProductUserId">
               <Form.Label>User ID</Form.Label>
               <Form.Control
                 type="number"
@@ -205,7 +220,7 @@ const ProductPage = () => {
                   setAddFormData({ ...addFormData, user_id: e.target.value })
                 }
               />
-            </Form.Group>
+            </Form.Group> */}
           </Form>
         </Modal.Body>
         <Modal.Footer>

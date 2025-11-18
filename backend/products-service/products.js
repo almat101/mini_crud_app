@@ -128,21 +128,23 @@ app.get('/api/products/:id',JWT_middleware_decode, async (req,res) =>
 });
 
 //POST per create un nuovo prodotto (CREATE)
+//Update the endpoint to extract the user_id from the req.user
 app.post('/api/products',JWT_middleware_decode, async (req, res) => {
   try {
-    let product = req.body; // req.body parse the JSON to a JS object
-    console.log(product);
+    const product = req.body; // req.body parse the JSON to a JS object
+    const logged_userId = req.user.userId; // extracted the userId of the logged user with the value saved by the middleware to req.user
+    console.log(logged_userId);
     if (!product.name || product.name.trim() === "")
       return res.status(400).json({ error: "Product name required" })
     if (!product.price || isNaN(product.price)) // this is a number so we need to use isNaN 
       return res.status(400).json({ error: "Price must be a valid number" })
     if (!product.category || product.category.trim() === "")
       return res.status(400).json({ error: "Category name required" })
-    if (!product.user_id || isNaN(product.user_id)) // add user_id for taking the products of a specific user
-      return res.status(400).json({ error: "user_id must be a valid number" })
+    // if (!product.user_id || isNaN(product.user_id)) // add user_id for taking the products of a specific user
+    //   return res.status(400).json({ error: "user_id must be a valid number" })
     const text = 'Insert INTO products (name, price, category, user_id) VALUES ($1, $2, $3, $4) RETURNING *';
     // This is a simple SQL query that uses placeholders ($1, $2, $3, $4) to prevent SQL injection.
-    const values = [product.name, product.price, product.category, product.user_id];
+    const values = [product.name, product.price, product.category, logged_userId];
     // 'values' is an array containing the data to be inserted into the database.
     const result = await pool.query( text, values); 
     return res.status(201).send({ message: "Product created" , product: result.rows[0] });
