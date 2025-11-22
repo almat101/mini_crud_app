@@ -123,10 +123,33 @@ services:
     networks:
       - crud-app
 
+  db_orders:
+    image: postgres:17-alpine3.22
+    container_name: db_orders
+    restart: always
+    env_file: ".env.dev"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER_ORDERS}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_ORDERS}
+      - POSTGRES_DB=${POSTGRES_DB_ORDERS}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_orders_data:/var/lib/postgresql/data
+      - ./backend/orders-service/init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s 
+    networks:
+      - crud-app
 
 volumes:
   postgres_auth_data:
   postgres_products_data:
+  postgres_orders_data:
 
 networks:
   crud-app:
