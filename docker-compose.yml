@@ -29,8 +29,8 @@ services:
       dockerfile: Dockerfile
     container_name: auth-service-crud
     env_file: ".env"
-    ports:
-      - 4030:3030
+    # ports:
+    #   - 4030:3030
     restart: unless-stopped
     depends_on:
       db_auth:
@@ -50,8 +50,8 @@ services:
       dockerfile: Dockerfile
     container_name: products-service-crud
     env_file: ".env"
-    ports:
-      - 4020:3020
+    # ports:
+    #   - 4020:3020
     restart: unless-stopped
     depends_on:
       db_products:
@@ -74,8 +74,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER_AUTH}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_AUTH}
       - POSTGRES_DB=${POSTGRES_DB_AUTH}
-    ports:
-      - "5440:5432"
+    # ports:
+    #   - "5440:5432"
     volumes:
       - postgres_auth_data:/var/lib/postgresql/data
       - ./backend/auth-service/init-scripts:/docker-entrypoint-initdb.d
@@ -97,8 +97,8 @@ services:
       - POSTGRES_USER=${POSTGRES_USER_PRODUCTS}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_PRODUCTS}
       - POSTGRES_DB=${POSTGRES_DB_PRODUCTS}
-    ports:
-      - "5441:5432"
+    # ports:
+    #   - "5441:5432"
     volumes:
       - postgres_products_data:/var/lib/postgresql/data
       - ./backend/products-service/init-scripts:/docker-entrypoint-initdb.d

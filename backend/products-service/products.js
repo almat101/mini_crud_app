@@ -29,7 +29,7 @@ function JWT_middleware_decode(req, res, next) {
   // estraggo il token dall headers della richiesta
   // let token = req.headers.authorization?.split(' ')[1];
   const token = req.cookies.token;
-  console.log("token from middleware", token);
+  // console.log("token from middleware", token);
   if (!token)
     return res.status(401).json({ message: "Unauthorized token" });
   try {
