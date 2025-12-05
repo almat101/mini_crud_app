@@ -1,5 +1,5 @@
 import app from "./app.js";
-import { getPool } from "../auth-service/config/database.js";
+import { getPool } from "./config/database.js";
 
 const PORT = 3030;
 
