@@ -28,13 +28,13 @@ This guide describes how to migrate from a single JWT token (stored in an HTTP-o
 - [x] Create a utility to connect to Redis and export the client.
 
 ### 2. Update Token Generation Logic
-- [ ] Modify `generateJwtToken` or create two functions: one for access token (short expiry), one for refresh token (long expiry).
-- [ ] Use different secrets or the same secret for both tokens (recommended: same secret, but include a `type` claim to differentiate).
+- [x] Create two functions for generate token: one for access token (short expiry), one for refresh token (long expiry).
+- [x] Use same secret, with different `type` to differentiate.
 
 ### 3. Update `/login` Endpoint
-- [ ] Generate both access token and refresh token on successful login.
-- [ ] Store the refresh token (or its hash) in Redis with the user ID as part of the key.
-- [ ] Set both tokens as HTTP-only, secure cookies with appropriate `maxAge`.
+- [x] Generate both access token and refresh token on successful login.
+- [x] Store the refresh token (or its hash) in Redis with the user ID as part of the key.
+- [x] Set both tokens as HTTP-only, secure cookies with appropriate `maxAge`.
 
 ### 4. Create `/refresh` Endpoint
 - [ ] Accept the refresh token from the cookie.

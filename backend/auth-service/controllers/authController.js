@@ -8,11 +8,14 @@ import {
 import {
   validateUserCredentials,
   comparePasswords,
-  generateJwtToken,
+  generateAccessToken,
+  generateRefreshToken,
   hashPassword,
   validateSignupData,
   validateJwtPayload,
 } from "../services/authService.js";
+
+import { saveRefreshTokenToRedis } from "../repositories/refreshTokenRepository.js";
 
 // funzione che gestisce la logica di registrazione utente
 // riceve dati dal fronted trasformati da oggetto JS a oggetto JSON con AXIOS
@@ -134,15 +137,16 @@ export const login = async (req, res) => {
       .status(500)
       .json({ message: "Internal server error", context: "Invalid payload" });
   }
-  let token;
-  try {
-    // Generazione token JWT con jsonwebtoken
-    // const token =  jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' }); //scadenza 7giorni dopo devo implementare al logout una blacklist dei token
-    token = generateJwtToken(payload, process.env.JWT_SECRET, {
-      expiresIn: "7d", // at the moment i have to use 7day maxAge then i will implement a refresh token endpoint
-    });
 
-    setJwtCookie(res, token);
+  //TODO update test
+  let accessToken;
+  let refreshToken;
+  try {
+    accessToken = generateAccessToken(payload);
+    refreshToken = generateRefreshToken(payload);
+
+    await saveRefreshTokenToRedis(userFound.id, refreshToken);
+
 
     return res.status(200).json({ message: "Login successful" });
   } catch {
@@ -159,24 +163,42 @@ export const demoLogin = async (_, res) => {
       username: demo_user.username,
       email: demo_user.email,
     };
-    const token = generateJwtToken(payload, process.env.JWT_SECRET, {
-      expiresIn: "7d", // at the moment i have to use 7day then i will implement a refresh token endpoint
-    });
 
-    setJwtCookie(res, token);
+    const accessToken = generateAccessToken(payload);
+    const refreshToken = generateRefreshToken(payload);
+
+    await saveRefreshTokenToRedis(demo_user.id, refreshToken);
+
+    setAccessTokenCookie(res, accessToken);
+    setRefreshTokenCookie(res, refreshToken);
     return res.status(200).json({ message: "Login successful" });
   } catch {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
 
-export const setJwtCookie = (res, token) => {
+//TODO update test
+export const setAccessTokenCookie = (res, token) => {
   try {
-    res.cookie("token", token, {
+    res.cookie("access", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "prod",
       sameSite: "strict",
-      maxAge: 1000 * 60 * 60 * 24 * 7, // at the moment i have to use 7day maxAge then i will implement a refresh token endpoint
+      maxAge: 1000 * 60 * 15,
+    });
+  } catch {
+    throw new Error("Failed to set jwt cookie");
+  }
+};
+
+//TODO update test
+export const setRefreshTokenCookie = (res, token) => {
+  try {
+    res.cookie("refresh", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "prod",
+      sameSite: "strict",
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     });
   } catch {
     throw new Error("Failed to set jwt cookie");
@@ -185,10 +207,11 @@ export const setJwtCookie = (res, token) => {
 
 export const checkIsAuth = async (req, res) => {
   try {
-    const token = req.cookies.token;
-    console.log(token);
-    if (!token) return res.status(200).json({ isAuth: false });
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    //now read the access token
+    const accessToken = req.cookies.access;
+    console.log(accessToken);
+    if (!accessToken) return res.status(200).json({ isAuth: false });
+    const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
     if (decoded === null || decoded === undefined)
       return res.status(401).json({ isAuth: false });
     return res.status(200).json({
@@ -204,9 +227,14 @@ export const checkIsAuth = async (req, res) => {
   }
 };
 
+//TODO update test
 export const logout = async (_, res) => {
   try {
-    res.clearCookie("token", {
+    res.clearCookie("access", {
+      secure: process.env.NODE_ENV === "prod",
+      sameSite: "strict",
+    });
+    res.clearCookie("refresh", {
       secure: process.env.NODE_ENV === "prod",
       sameSite: "strict",
     });

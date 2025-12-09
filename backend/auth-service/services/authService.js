@@ -62,8 +62,17 @@ export const comparePasswords = async (plaintextPassword, hashedPassword) => {
   return bcrypt.compare(plaintextPassword, hashedPassword);
 };
 
-export const generateJwtToken = (payload, secret, options) => {
-  return jwt.sign(payload, secret, options);
+//TODO modify all test
+export const generateAccessToken = (payload) => {
+  return jwt.sign({ ...payload, type: "access" }, process.env.JWT_SECRET, {
+    expiresIn: "15m", //short lived token
+  });
+};
+
+export const generateRefreshToken = (payload) => {
+  return jwt.sign({ ...payload, type: "refresh" }, process.env.JWT_SECRET, {
+    expiresIn: "7d", // long lived token
+  });
 };
 
 // Per prima cosa geniaramo un Salt ( che e' una stringa causale che andra aggiunta alla password prima di hasharla)

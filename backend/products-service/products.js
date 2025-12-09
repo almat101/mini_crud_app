@@ -28,13 +28,14 @@ function JWT_middleware_decode(req, res, next) {
   // ora il token si trova nei cookie non serve piu estrarlo dall header
   // estraggo il token dall headers della richiesta
   // let token = req.headers.authorization?.split(' ')[1];
-  const token = req.cookies.token;
-  // console.log("token from middleware", token);
-  if (!token)
+  // ora si usa access token
+  const accessToken = req.cookies.access;
+  // console.log("accessToken from middleware", accessToken);
+  if (!accessToken)
     return res.status(401).json({ message: "Unauthorized token" });
   try {
       //Uso JWT verify per verificare il token
-      let decoded = jwt.verify(token, process.env.JWT_SECRET);
+      let decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
       if (decoded === null || decoded === undefined)
           return res.status(401).json({ "message": "Unauthorized: Invalid or expired token" });
       req.user = decoded;
