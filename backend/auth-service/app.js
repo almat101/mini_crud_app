@@ -35,10 +35,22 @@ app.use(express.json());
 //   res.send('Hello auth-service!');
 // });
 
-app.get("/test-cookies", (req, res) => {
-  console.log("Cookies:", req.cookies); // Print cookies to the console
-  res.json({ cookies: req.cookies }); // Return cookies in the response for testing
-});
+// app.get("/test-cookies", (req, res) => {
+//   console.log("Cookies:", req.cookies); // Print cookies to the console
+//   res.json({ cookies: req.cookies }); // Return cookies in the response for testing
+// });
+
+// app.get("/test-redis", async (_, res) => {
+//   try {
+//     const client = await getRedisClient();
+//     await client.set("key", "value");
+//     const value = await client.get("key");
+//     // client.destroy(); moved toserver.js into shutdown function and substituted with close
+//     res.json({ redis: "working?", message: value });
+//   } catch (error) {
+//     console.error("error on ", error);
+//   }
+// });
 
 // Collego il router di autenticazione aggiungo /auth in modo da dover chiamare solo /auth/signup e auth/login
 app.use("/auth", authRoutes);

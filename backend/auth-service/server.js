@@ -1,10 +1,12 @@
 import app from "./app.js";
 import { getPool } from "./config/database.js";
+import { getRedisClient } from "./config/redis.js";
 
-const PORT = 3030;
+const AUTH_PORT = process.env.PORT || 3030;
+let isDown = false;
 
-const server = app.listen(PORT, () => {
-  console.log(`Auth app listening on port ${PORT}`);
+const server = app.listen(AUTH_PORT, () => {
+  console.log(`Auth app listening on port ${AUTH_PORT}`);
   console.log(`
           Route available:
           '/auth/signup (POST)
@@ -22,12 +24,30 @@ const serverCloseAsPromise = () =>
   });
 
 async function shutdown(signal) {
+  if (isDown) return;
+  isDown = true;
   console.log(`Received  ${signal}.Closing database and server...`);
-  const pool = getPool();
-  //close the server (ensure it does not accept new connections)
-  await serverCloseAsPromise();
-  //close the db connection pool
-  await pool.end();
+  try {
+    //close the server (ensure it does not accept new connections)
+    await serverCloseAsPromise();
+  } catch (error) {
+    console.error("Error on", error);
+  }
+  try {
+    const pool = getPool();
+    //close the db connection pool
+    await pool.end();
+  } catch (error) {
+    console.error("Error on", error);
+  }
+  try {
+    const client = await getRedisClient();
+    //closing the redis connection with client.close instead of the depracted .quit()
+    await client.close();
+  } catch (error) {
+    console.error("Error on", error);
+  }
+  console.log("Shutdown complete.");
 }
 
 process.on("SIGTERM", () => shutdown("SIGTERM"));

@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken'
 import cookieParser from "cookie-parser";
 
 const app = express();
-const port = 3020;
+const PROD_PORT = process.env.PORT || 3020;
 
 dotenv.config();
 // console.log(process.env)
@@ -299,8 +299,8 @@ app.delete('/api/products/:id', JWT_middleware_decode, async (req, res) => {
     //console.log(result.rows);
 
 
-    app.listen(port, () => {
-      console.log(`Example app listening on port ${port}`)
+    app.listen(`${PROD_PORT}`, () => {
+      console.log(`Example app listening on port ${PROD_PORT}`)
       console.log(`
         Route available:
         '/api/products         (GET) return all JSON value from DB (READ)
