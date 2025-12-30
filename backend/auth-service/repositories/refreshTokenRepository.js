@@ -1,16 +1,43 @@
 import { getRedisClient } from "../config/redis.js";
 
+const REFRESH_KEY = (id) => `refresh_token:${id}`;
+const REFRESH_TTL = 60 * 60 * 24 * 7;
+
 export async function saveRefreshTokenToRedis(userId, refreshToken) {
   try {
     const client = await getRedisClient();
-    const key = "refresh_token:" + userId;
+    const key = REFRESH_KEY(userId);
     const value = refreshToken;
     await client.set(key, value, {
-      EX: 60 * 60 * 24 * 7,
+      EX: REFRESH_TTL,
     });
   } catch (error) {
     console.error("Error saving refresh token to Redis:", error);
     throw new Error("Error saving refresh token to Redis");
+  }
+}
+
+export async function getRefreshTokenFromRedis(userId) {
+  try {
+    const client = await getRedisClient();
+    const key = REFRESH_KEY(userId);
+    const token = await client.get(key);
+    return token;
+  } catch (error) {
+    console.error("Error getting refresh token to Redis:", error);
+    throw new Error("Error getting refresh token to Redis");
+  }
+}
+
+export async function deleteRefreshTokenFromRedis(userId) {
+  try {
+    const client = await getRedisClient();
+    const key = REFRESH_KEY(userId);
+    const deleted = await client.del(key);
+    return deleted > 0;
+  } catch (error) {
+    console.error("Error deleting refresh token to Redis:", error);
+    throw new Error("Error deleting refresh token to Redis");
   }
 }
 

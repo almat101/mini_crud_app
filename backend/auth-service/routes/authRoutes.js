@@ -6,6 +6,7 @@ import {
   demoLogin,
   checkIsAuth,
   logout,
+  refresh,
 } from "../controllers/authController.js";
 
 // Definisco una costante router
@@ -23,6 +24,8 @@ router.get("/demo", demoLogin);
 router.get("/checkIsAuth", checkIsAuth);
 
 router.post("/logout", logout);
+
+router.post("/refresh", refresh);
 
 //esporto il router per prenderlo in app.js
 export default router;

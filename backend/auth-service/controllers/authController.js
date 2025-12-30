@@ -147,6 +147,8 @@ export const login = async (req, res) => {
 
     await saveRefreshTokenToRedis(userFound.id, refreshToken);
 
+    setAccessTokenCookie(res, accessToken);
+    setRefreshTokenCookie(res, refreshToken);
 
     return res.status(200).json({ message: "Login successful" });
   } catch {
@@ -243,3 +245,11 @@ export const logout = async (_, res) => {
     return res.status(500).json({ message: "Internal server errror" });
   }
 };
+
+export const refresh = async (req, res) => {
+  try {
+    
+  } catch {
+      return res.status(500).json({ message: "Internal server errror" });
+  }
+}
