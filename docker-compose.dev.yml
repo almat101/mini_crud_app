@@ -26,6 +26,8 @@ services:
         condition: service_healthy
       products-service:
         condition: service_healthy
+      # orders-service:
+      #   condition: service_healthy
     networks:
       - crud-app
 
@@ -76,6 +78,30 @@ services:
       start_period: 5s
     networks:
       - crud-app
+  
+  # orders-service:
+  #   build: ./backend/orders-service
+  #   container_name: orders-service
+  #       #sovrascrive il comando del dockerfile
+  #   command: sh -c "npm run drizzle:migrate && npm run dev"
+  #   env_file: ".env.dev"
+  #   ports:
+  #     - 3040:3040
+  #   volumes:
+  #   - ./backend/orders-service:/app # Monta il codice sorgente
+  #   - /app/node_modules # Evita di sovrascrivere i moduli node
+  #   restart: unless-stopped
+  #   depends_on:
+  #     db_orders:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--spider", "-q", "http://localhost:3040/ping"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 5s
+  #   networks:
+  #     - crud-app
 
   db_auth:
     image: postgres:17-alpine3.22

@@ -39,7 +39,7 @@ const LoginForm = () => {
       login(); //aggiorna l'authcontext
       setMessage("Signup successful!");
       setVariant("success");
-      navigate("/products", { replace: true });
+      navigate("/my-home", { replace: true });
     } catch (error) {
       setMessage(error.response?.data?.message || "Signup failed!"); // Mostra un messaggio di errore
       setVariant("danger");
@@ -57,7 +57,7 @@ const LoginForm = () => {
       setMessage("Demo login successful!");
       setVariant("success");
       // console.log("handledemologin", document.cookie);
-      navigate("/products", { replace: true });
+      navigate("/my-home", { replace: true });
     } catch (error) {
       setMessage(error.response?.data?.message || "Signup failed!"); // Mostra un messaggio di errore
       setVariant("danger");

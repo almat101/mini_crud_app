@@ -80,11 +80,22 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
-// Nuove rotte per testare le operazione CRUD
 
-// GET per recuperare tutti i prodotti (READ) 
-// Aggiunta del middleware per verificare la validita del token JWT
-app.get('/api/products', JWT_middleware_decode, async (req,res) =>
+//nuova home pubblica (tutti possono vedere cosa comprare)
+app.get('/api/products/public/', async (req,res) =>
+{
+  try {
+    const result = await pool.query(`SELECT * from products`);
+    res.status(200).json(result.rows);
+  } catch(err) {
+    console.error("Home page error!")
+    res.status(500).json({ message: 'Errore interno del server. Riprova più tardi.' });
+  }
+});
+
+// nuova GET per recuperare tutti i prodotti personali da vendere
+// (pagina /my-product) 
+app.get('/api/products/', JWT_middleware_decode, async (req,res) =>
 {
     // Devo creare una rotta get che esegua semplicemente la query che ho scritto sotto nel testPool
     // Ma devo gestire eventuali errori o il fatto che il db sia vuoto o spento
@@ -98,11 +109,14 @@ app.get('/api/products', JWT_middleware_decode, async (req,res) =>
     }
 });
 
-//get per recuperare tutti i prodotti scraped da selenium
-app.get('/api/scraped_products', JWT_middleware_decode, async (req,res) =>
+// nuova GET che serve a vedere tutti i prodotti che un utente mette in vendite (tutti tranne il suo id cioe quelli che lui mette in vendita)
+// nuova pagina da loggato
+app.get('/api/products/my-home/', JWT_middleware_decode, async (req,res) =>
 {
     try {
-        const result = await pool.query(`SELECT * from scraped_products`);
+        let userId = req.user.userId;
+        console.log(userId)
+        const result = await pool.query(`SELECT * from products WHERE user_id != $1 AND quantity > 0 ORDER BY created_at DESC`, [userId]);
         res.status(200).json(result.rows);
     } catch(err) {
             res.status(500).json({ message: 'Errore interno del server. Riprova più tardi.' });

@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-// import { AuthContext } from '../context/AuthContext';
-// import { Interceptor } from '../interceptor/axiosInterceptor';
 
 import {
   Alert,
@@ -15,12 +13,12 @@ import {
 } from "react-bootstrap";
 
 const isDev = process.env.REACT_APP_IS_DEV === "true";
-const URL = isDev ? "http://localhost:3020/api/products/" : "/api/products/";
+const URL = isDev ? "http://localhost:3020/api/products/my-home/" : "/api/products/my-home/";
 
 //invocazione dell interceptor che aggiunge il token bearer ad ogni richiesta
 // Interceptor();
 
-const ProductPage = () => {
+const MyHome = () => {
   const [products, setProducts] = useState([]); // List of all products
   const [addFormData, setAddFormData] = useState({
     name: "",
@@ -125,13 +123,13 @@ const ProductPage = () => {
                     className="me-2"
                     onClick={() => handleShowAddModal(product.id)}
                   >
-                    Add
+                    Add to chart
                   </Button>
                   <Button
                     variant="danger"
                     onClick={() => handleShowDeleteModal(product.id)}
                   >
-                    Delete
+                    Delete from chart
                   </Button>
                 </Card.Body>
               </Card>
@@ -237,4 +235,4 @@ const ProductPage = () => {
   );
 };
 
-export default ProductPage;
+export default MyHome;

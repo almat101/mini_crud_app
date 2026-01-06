@@ -9,6 +9,8 @@ import ProductPage from './components/ProductPage'
 import NotFound from './components/NotFound';
 import { AuthProvider } from './context/AuthContext'
 import 'bootstrap/dist/css/bootstrap.min.css';
+import HomePage from './components/Home';
+import MyHome from './components/MyHome';
 
 function App() {
   return (
@@ -20,7 +22,9 @@ function App() {
         {/* <Header /> */}
         <BSNavbar />
         <Routes>
-          <Route path="/" element={<Navigate to="/login" />} />
+          <Route path="/" element={<Navigate to="/home" />} />
+          <Route path="/home" element={<HomePage/>} />
+          <Route path="/my-home" element={<MyHome/>} />
           <Route path="/signup" element={<SignupForm />} />
           <Route path="/login" element={<LoginForm />} />
           <Route path='/products' element={<ProductPage />} />

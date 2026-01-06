@@ -8,17 +8,19 @@ import {
 import { relations } from "drizzle-orm";
 
 export const orders = pgTable("orders", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
 
   // we can use also id as serial but is an old method
   // id: serial("id").primaryKey(),
   //Relazione ESTERNA (microservizio auth): e un intero, non e una fk
   userId: integer("user_id").notNull(),
 
-  totalPrice: decimal("total_price", { precision: 10, scale: 2 }),
+  totalPrice: decimal("total_price", { precision: 10, scale: 2 }).notNull(),
 
-  status: varchar("status", { length: 50 }).default("COMPLETED"),
-
+  status: varchar("status", { length: 50 }).default("PENDING"), //UPDATE TO PENDING
+  //ORDER STATUS:
+  // 1 order created -> status "PENDING" -> sent to redis stream
+  // 2 order processed -> status "COMPLETED" -> saved to Postgres
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -61,7 +63,8 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
 //     id SERIAL PRIMARY KEY,         -- SÌ: Primary Key
 //     user_id INTEGER NOT NULL,      -- NO FK: L'utente sta nel DB Auth! È solo un numero qui.
 //     total_price NUMERIC(10, 2),
-//     status VARCHAR(50)
+//     status VARCHAR(50) DEFAULT "COMPLETED",
+//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 // );
 
 // -- Tabella 2: Le righe (Dettaglio)
@@ -75,5 +78,6 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
 //     product_id INTEGER NOT NULL,
 
 //     quantity INTEGER NOT NULL,
+
 //     price NUMERIC(10, 2) NOT NULL
 // );

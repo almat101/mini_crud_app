@@ -61,9 +61,11 @@ const BSNavbar = () => {
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
+              {!isAuth && <Nav.Link href="/home">Home</Nav.Link>}
               {!isAuth && <Nav.Link href="/login">Login</Nav.Link>}
               {!isAuth && <Nav.Link href="/signup">Signup</Nav.Link>}
-              {isAuth && <Nav.Link href="/products">Products</Nav.Link>}
+              {isAuth && <Nav.Link href="/products">My products</Nav.Link>}
+              {isAuth && <Nav.Link href="/my-home">My home</Nav.Link>}
             </Nav>
             <Nav className="ms-auto">
               {isAuth && (
