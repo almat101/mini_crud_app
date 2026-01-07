@@ -1,6 +1,7 @@
 import Fastify from "fastify";
 import {db} from "./db/index.js"
 import { orders, orderItems } from "./db/schema.js";
+import { getRedisClient } from "./redis/redisClient.js"
 
 const server = Fastify({
   logger: true,
@@ -77,6 +78,17 @@ server.post<{ Body: IOrderBody }>("/orders", async (request, reply) => {
       itemCount: items.length
     });
     
+    // invio messaggio a redis stream (publisher)
+    const redis = getRedisClient();
+
+    (await redis).xadd(
+      "orders_stream",
+      "*", // auto-generate ID
+      'order_id', orderID.toString(),
+      'products', JSON.stringify(items)
+    );
+
+
   } catch (error) {
     console.error("Error creating order", error);
     reply.code(500).send({
@@ -100,3 +112,13 @@ server.listen({ port: 3040 }, (err, address) => {
 
 // drizzle insert + returning
 // https://orm.drizzle.team/docs/insert
+
+// publisher tested:
+// after a post on /oders I can see this on redis-cli
+// 127.0.0.1:6379> XREAD STREAMS orders_stream 0
+// 1) 1) "orders_stream"
+//    2) 1) 1) "1767783162611-0"
+//          2) 1) "order_id"
+//             2) "2"
+//             3) "products"
+//             4) "[{\"product_id\":1,\"price\":\"999.99\",\"quantity\":1},{\"product_id\":3,\"price\":\"9.99\",\"quantity\":1},{\"product_id\":5,\"price\":\"99.99\",\"quantity\":10}]"

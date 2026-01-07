@@ -157,6 +157,23 @@ services:
       start_period: 20s 
     networks:
       - crud-app
+    
+  redis:
+    image: redis:8.4.0-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - crud-app
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -169,6 +186,8 @@ services:
 volumes:
   postgres_auth_data:
   postgres_products_data:
+  postgres_orders_data:
+  redis_data:
 
 networks:
   crud-app:
