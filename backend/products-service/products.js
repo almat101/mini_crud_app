@@ -6,6 +6,7 @@ import { Pool } from 'pg'
 import cors from 'cors';
 import jwt from 'jsonwebtoken'
 import cookieParser from "cookie-parser";
+import { getRedisClient } from './redis/redisClient.js';
 
 const app = express();
 const port = 3020;
@@ -239,79 +240,33 @@ app.delete('/api/products/:id', JWT_middleware_decode, async (req, res) => {
   }
 });
 
-// Vecchie rotto per testare
-// app.get('/', (req, res) => {
-//   res.send('Hello World!');
-// })
 
-// //Query string con /user/search va messo prima di req.parmas ( /user/:id)  per evitare che express esequa prima la rotta con il parametro
-// //La query string sono coppie chiave valore che vengono aggiunte dopo un '?' e separati tramite '&' es /products/search?chiave=valore&chiave2=valore2 
-// app.get('/test/products/search', (req,res) =>
-// {
-//   console.log(req.query);
-//   res.send(`req.query.name ${req.query.name} req.query.category ${req.query.category} req.query.price ${req.query.price}`);
-// })
+async function startConsumer() {
 
-// // Parametro nella richiesta (req.params) questo parametro e' un valore dinamico che puo' essere catturato con req.params
-// app.get('/test/products/:id', (req,res) => 
-// {
-//   let id = req.params.id;
-//   let isDigit = /^[0-9]+$/.test(id);
-//   let type = typeof req.params.id;
-//   if (isDigit) {
-//     res.send(`req.params is: ${req.params.id}, type is ${type}, is digit? ${isDigit}`);
-//   } else {
-//     res.status(400).send("Error ID is not a digit!");
-//   }
-// })
+  const redis = await getRedisClient();
 
-// app.get('/about',(req,res)=>
-// {
-//   // richiesta GET qui res.json e' usato per Serializzare JSON per la Risposta (Output) (prende un oggeto javascript e lo serializza in un JSON)
-//   // (il JSON e' hardcodato direttamente, in realta' andrebbe preso da un database)
-//   res.json({message : "success", test : "lol"});
-// })
-
-// app.get('/plain',(req,res) =>
-// {
-//   //  res.set modifca l'header e lo cambia in text/plain
-//   res.set('Content-Type','text/plain');
-//   // res.send invia semplice testo (se imoposta nell header) puo anche inviare oggetti JSON 
-//   res.send('Plain text sended!');
-// })
-
-// // test prima POST
-// app.post('/data', (req,res) =>
-// {
-//   // richiesta POST 
-//   // dentro express.json() ce del codice che intercetta la richiesta HTTP che contiene anche il body come oggetto JSON, legge il corpo e lo parsa in oggetto javascript 
-//   // e lo inserisce dentro req.body, dopo questo chiama next() per passare al prossimo middleware. req.body diventa un oggetto javascript grazie ad express.json().
-//   // se non viene usato express.json() con app.use(express.json()); il body sara' undefined.
-//   // Anche in questa POST il codice e' hardcoded, in realta' andrebbero effettuati controlli sul tipo di oggetto, se ha i campi necessari ecc e poi aggiunto al database.
-//   console.log('Dati ricevuti nel corpo della richiesta:', req.body);
-//   res.status(201);
-//   res.json({
-//     message: "dati ricevuti",
-//     data: req.body
-//   });
-// });
-
-
-//async function testPool_startServer() {
- // try {
+  const processMessage = (message) => {
+    console.log("Id: %s. Data: %O", message[0], message[1]);
+  };
+  
+  
+  async function listenForMessage(lastId = "$") {
+    // `results` is an array, each element of which corresponds to a key.
+    // Because we only listen to one key (mystream) here, `results` only contains
+    // a single element. See more: https://redis.io/commands/xread#return-value
+    const results = await redis.xread("BLOCK", 0, "STREAMS", "orders_stream", lastId);
+    const [key, messages] = results[0]; // `key` equals to "mystream"
     
-    // const client = await pool.connect(); // Qui pool.connect() e usato per acqusire una connessione
-    // const result = await client.query('SELECT NOW()') // viene eseguita una query che mostra l'ora attuale del db
-    // console.log(result);
-    //client.release(); //Necessario il rilascio del client al pool
+    messages.forEach(processMessage);
+    
+    // Pass the last id of the results to the next round.
+    await listenForMessage(messages[messages.length - 1][0]);
+  }
+  
+  listenForMessage();
+}
 
-    // Test con await pool.query():
-    // Non ha bisogno di acquisire una connessione e di rilasciarla, per eseguire una semplice query.
-    //const result = await pool.query('SELECT $1::text as name', ['Lenovo T14']);
-    //const result = await pool.query('SELECT * FROM products WHERE id = $1', [2]);
-    //const result = await pool.query('SELECT * FROM products');
-    //console.log(result.rows);
-
+startConsumer();
 
     app.listen(port, () => {
       console.log(`Example app listening on port ${port}`)

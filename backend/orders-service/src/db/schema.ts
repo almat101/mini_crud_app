@@ -63,7 +63,7 @@ export const orderItemsRelations = relations(orderItems, ({ one }) => ({
 //     id SERIAL PRIMARY KEY,         -- SÌ: Primary Key
 //     user_id INTEGER NOT NULL,      -- NO FK: L'utente sta nel DB Auth! È solo un numero qui.
 //     total_price NUMERIC(10, 2),
-//     status VARCHAR(50) DEFAULT "COMPLETED",
+//     status VARCHAR(50) DEFAULT "PENDING",
 //     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 // );
 

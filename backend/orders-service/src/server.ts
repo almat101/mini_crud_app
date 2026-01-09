@@ -20,7 +20,7 @@ server.get('/health', (reqquest, reply) => {
 // {
 //   "user_id": 2, 
 //   "total_price": "1599.98",
-//   "status": "COMLETED",
+//   "status": "PENDING",
 //   "items": [
 //     { "product_id": 1, "price": "999.99", "quantity": 1 },
 //     { "product_id": 2, "price": "599.99", "quantity": 1 }
@@ -79,9 +79,9 @@ server.post<{ Body: IOrderBody }>("/orders", async (request, reply) => {
     });
     
     // invio messaggio a redis stream (publisher)
-    const redis = getRedisClient();
+    const redis = await getRedisClient();
 
-    (await redis).xadd(
+    redis.xadd(
       "orders_stream",
       "*", // auto-generate ID
       'order_id', orderID.toString(),
@@ -122,3 +122,19 @@ server.listen({ port: 3040 }, (err, address) => {
 //             2) "2"
 //             3) "products"
 //             4) "[{\"product_id\":1,\"price\":\"999.99\",\"quantity\":1},{\"product_id\":3,\"price\":\"9.99\",\"quantity\":1},{\"product_id\":5,\"price\":\"99.99\",\"quantity\":10}]"
+
+
+// post /orders -> orders created-> save to db_orders ( status is PENDING) -> order-sercice publish on redis stream in orders_stream( when transaction on db_orders is ok!)
+// (product-service consumers) read from redis stream (orders_stream)-> update product quantity ( decrease) in DB_PRODUCTS -> publish on inventory_stream ( inventory updated)
+// (orders-service consumers) read from redis stream (inventory_stream) -> update status to "COMPLETED" in DB_ORDERS
+
+// orders-service (producer) → orders_stream
+// products-service (consumer) ← orders_stream
+// products-service (producer) → inventory_stream  
+// orders-service (consumer) ← inventory_stream
+// PRO:
+// Each service is both producer AND consumer - Standard pattern
+// Loose coupling - Services communicate only via events
+// Independent scaling - Each consumer can scale separately
+// Event-driven choreography - No central orchestrator needed
+// Matches production systems - This is industry-standard event-driven microservices architecture.
