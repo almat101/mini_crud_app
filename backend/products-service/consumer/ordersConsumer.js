@@ -1,7 +1,6 @@
 import { getRedisClient } from '../redis/redisClient.js';
 import { getPool } from '../db/getPool.js';
 
-
 export async function startConsumer() {
   
   const pool = getPool();
@@ -16,6 +15,13 @@ export async function startConsumer() {
         const value = message[1][i + 1];
         orderData[key] = value;
     }
+
+    // getting the order_id from orderData to use later in redis XADD
+    const orderID = orderData.order_id;
+
+    console.log("order_id: ", orderData.order_id);
+    console.log("type of order_id: ", typeof(orderData.order_id));
+  
     // need to parse the JSON string
     const orderProducts = JSON.parse(orderData.products);
     // console.log(orderProducts)
@@ -38,7 +44,7 @@ export async function startConsumer() {
         const productOrderdID = item.product_id;
         const productOrderedPrice = item.price;
         const productOrderedQuantity = item.quantity;
-        // esecuzione update su database DB_PRODUCT
+        // UPDATE query on DB_PRODUCT
         const text = `UPDATE "products" 
                       SET "quantity" = "quantity" - $1 
                       WHERE "id" = $2 AND "quantity" >= $1
@@ -48,7 +54,7 @@ export async function startConsumer() {
         // 'values' is an array containing the data to be inserted into the database.
         const result = await client.query( text, values); 
         
-        console.log('result.rowCount', result.rowCount);
+        // console.log('result.rowCount', result.rowCount);
         // console.log(`Product ${productOrderdID} quantity updated!`);
 
         if (result.rowCount === 0) {
@@ -65,39 +71,64 @@ export async function startConsumer() {
       if (!orderFailed) {
         await client.query('COMMIT')
         console.log("Order updated successfully!");
+
         // publish event on inventory_stream (status "COMPLETED") then read this stream and update DB_ORDERS with the same status
+        await redis.xadd(
+          "inventory_stream",
+          "*", // auto-generate ID
+          'order_id', orderID,
+          'status', "COMPLETED"
+        );
       } else {
         await client.query('ROLLBACK')
         console.error("Failed to update order!");
         //publish event on inventory_stream( status "FAILED") then read this stream and update DB_ORDERS with the same status
+        await redis.xadd(
+          "inventory_stream",
+          "*", // auto-generate ID
+          'order_id', orderID,
+          'status', "FAILED"
+        );
       }
       
     } catch (error) {
         await client.query('ROLLBACK')
         console.error(`Transaction failed: `, error);
         // publish failed on inventory stream
+        await redis.xadd(
+          "inventory_stream",
+          "*", // auto-generate ID
+          'order_id', orderID,
+          'status', "FAILED"
+        );
     } finally {
       client.release(); // must call this for avoiding connections pool leaks
     }
   };
-  
-  
-  async function listenForMessage(lastId = "$") {
+
+async function listenForMessage() {
+    let lastId = "$";
     // `results` is an array, each element of which corresponds to a key.
     // Because we only listen to one key (mystream) here, `results` only contains
     // a single element. See more: https://redis.io/commands/xread#return-value
-    const results = await redis.xread("BLOCK", 0, "STREAMS", "orders_stream", lastId);
-    const [key, messages] = results[0]; // `key` equals to "mystream"
-    
-    // forEach doesn't wait for async function
-    // messages.forEach(processMessage);
-    for (const msg of messages) {
-      await processMessage(msg);
+    while (true) {
+      try {
+        const results = await redis.xread("BLOCK", 0, "STREAMS", "orders_stream", lastId);
+        const [key, messages] = results[0]; // `key` equals to "mystream"
+
+        for (const msg of messages) {
+        // forEach doesn't wait for async function
+        // messages.forEach(processMessage);
+          await processMessage(msg);
+        }
+
+        // Pass the last id of the results to the next round.
+        lastId = messages[messages.length - 1][0];  // Update for next iteration
+      } catch (error) {
+        console.error("Consumer error:", error);
+          await new Promise(resolve => setTimeout(resolve, 5000));  // Wait 5s before retry
+      }
     }
-    
-    // Pass the last id of the results to the next round.
-    await listenForMessage(messages[messages.length - 1][0]);
   }
-  
-  listenForMessage();
-}
+    listenForMessage();
+  }
