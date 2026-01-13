@@ -2,14 +2,16 @@ import express from 'express'
 import morgan from 'morgan';
 import helmet from 'helmet';
 import dotenv from 'dotenv'
-import { Pool } from 'pg'
 import cors from 'cors';
 import jwt from 'jsonwebtoken'
 import cookieParser from "cookie-parser";
-import { getRedisClient } from './redis/redisClient.js';
+import { getPool } from './db/getPool.js';
+import { startConsumer } from './consumer/ordersConsumer.js';
 
 const app = express();
 const port = 3020;
+
+const pool = getPool();
 
 dotenv.config();
 // console.log(process.env)
@@ -52,18 +54,6 @@ function JWT_middleware_decode(req, res, next) {
 
 //libreria di node per leggere i file .env ( su python si usa os.environ.get("ENV_VARIABLE"))
 // dotenv.config({ path: '/home/ale/Desktop/express_project_1/.env' })
-
-const pool = new Pool({
-  host: process.env.POSTGRES_HOST_PRODUCTS,
-  user:  process.env.POSTGRES_USER_PRODUCTS,
-  database: process.env.POSTGRES_DB_PRODUCTS,
-  password: process.env.POSTGRES_PASSWORD_PRODUCTS,
-  port: process.env.POSTGRES_PORT_PRODUCTS,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-  maxLifetimeSeconds: 60
-});
 
 //                                                             ":method :url :status :response-time ms\ - :res[content-length]"
 // middleware logger utile per stampare info sulla richiesta es "GET /about 200 1.896 ms - 34" 
@@ -240,50 +230,22 @@ app.delete('/api/products/:id', JWT_middleware_decode, async (req, res) => {
   }
 });
 
-
-async function startConsumer() {
-
-  const redis = await getRedisClient();
-
-  const processMessage = (message) => {
-    console.log("Id: %s. Data: %O", message[0], message[1]);
-  };
-  
-  
-  async function listenForMessage(lastId = "$") {
-    // `results` is an array, each element of which corresponds to a key.
-    // Because we only listen to one key (mystream) here, `results` only contains
-    // a single element. See more: https://redis.io/commands/xread#return-value
-    const results = await redis.xread("BLOCK", 0, "STREAMS", "orders_stream", lastId);
-    const [key, messages] = results[0]; // `key` equals to "mystream"
-    
-    messages.forEach(processMessage);
-    
-    // Pass the last id of the results to the next round.
-    await listenForMessage(messages[messages.length - 1][0]);
-  }
-  
-  listenForMessage();
+async function startServer() {
+  await startConsumer();
+  app.listen(port, () => {
+    console.log(`Product-service listening on port ${port}`)
+    console.log(`
+      Route available:
+      '/api/products         (GET) return all JSON value from DB (READ)
+      '/api/products/:id     (GET) return a JSON of the specific id request from DB (READ)
+      '/api/products         (POST) send JSON object and STORE it into DB (CREATE)
+      '/api/products/:id     (PATCH) update the JSON object stored into the DB from the given id (UPDATE)
+      '/api/products/:id     (DELETE) delete a product in the DB from the given id (DELETE)
+      `)
+    });
 }
 
-startConsumer();
-
-    app.listen(port, () => {
-      console.log(`Example app listening on port ${port}`)
-      console.log(`
-        Route available:
-        '/api/products         (GET) return all JSON value from DB (READ)
-        '/api/products/:id     (GET) return a JSON of the specific id request from DB (READ)
-        '/api/products         (POST) send JSON object and STORE it into DB (CREATE)
-        '/api/products/:id     (PATCH) update the JSON object stored into the DB from the given id (UPDATE)
-        '/api/products/:id     (DELETE) delete a product in the DB from the given id (DELETE)
-        `)
-      })
-      // } catch (err) {
-        //   console.error('Errore critico all\'avvio del server o del database:', err.stack);
-        //   process.exit(1);
-        // }
-        //};
-        
-        //testPool_startServer();
-        
+startServer().catch(err => {
+  console.error("Failed to start:", err);
+  process.exit(1);
+})
