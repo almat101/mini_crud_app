@@ -330,93 +330,42 @@ describe("Integration test for /login", () => {
     expect(cookies[0]).toContain(mockToken);
   });
 
-  // test("Should return 500 if generateJWTtoken fails during login", async () => {
-  //   // Unsuccessful login:
-  //   // - validateUserCredential resolves (valid input)
-  //   // - findUser resolves (user founded in the db)
-  //   // - comparePassword resolves (password is the same)
-  //   // - validateJwtPaylod (payload is valid)
-  //   // - generateJwtToken rejects (return the object error in its try/catch block)
-  //   //arrange (mock all function)
-  //   validateUserCredentials.mockResolvedValueOnce({
-  //     email: "alex@gmail.com",
-  //     password: "testciao12",
-  //   });
-  //   findUser.mockResolvedValueOnce({
-  //     rows: [{ Id: 1, username: "alex", email: "alex@gmail.com" }],
-  //     rowCount: 1,
-  //   });
-  //   comparePasswords.mockResolvedValueOnce(true);
-  //   //mockResolvedvalueOnce for promise that resolve to a value
-  //   //mockReturnValueOnce for normal function that return a value
-  //   validateJwtPayload.mockReturnValueOnce({
-  //     userId: 1,
-  //     username: "alex",
-  //     email: "alex@gmail.com",
-  //   });
-  //   //use throw new Error if you want to simulate an error that triggers the catch block
-  //   generateJwtToken.mockImplementationOnce(() => {
-  //     throw new Error("Internal server error");
-  //   });
-  //   //act
-  //   const mock_body = {
-  //     email: "alex@gmail.com",
-  //     password: "testciao12",
-  //   };
-  //   const response = await request(app).post("/auth/login").send(mock_body);
-  //   //assert
-  //   expect(validateUserCredentials).toHaveBeenCalledTimes(1);
-  //   expect(findUser).toHaveBeenCalledTimes(1);
-  //   expect(comparePasswords).toHaveBeenCalledTimes(1);
-  //   expect(validateJwtPayload).toHaveBeenCalledTimes(1);
-  //   expect(generateJwtToken).toHaveBeenCalledTimes(1);
-  //   expect(response.statusCode).toBe(500);
-  //   expect(response.body).toMatchObject({ message: "Internal server error" });
-  // });
+  test("Should return 500 if loginUser throws an unexpected error", async () => {
+    //arrange
+    loginUser.mockRejectedValueOnce(new Error("Invalid payload"));
+    //act
+    const mock_body = {
+      email: "alex@gmail.com",
+      password: "testciao12",
+    };
+    const response = await request(app).post("/auth/login").send(mock_body);
+    //assert
+    expect(loginUser).toHaveBeenCalledTimes(1);
+    expect(loginUser).toHaveBeenCalledWith(mock_body);
+    expect(response.statusCode).toBe(500);
+    expect(response.body).toMatchObject({ message: "Internal server error" });
+  });
 
-  // test("Should return 500 Internal Server Error if validateJwtPayload throws an error.", async () => {
-  //   // Unsuccessful login:
-  //   // - validateUserCredential resolves (valid input)
-  //   // - findUser resolves (user founded in the db)
-  //   // - comparePassword resolves (password is the same)
-  //   // - validateJwtPaylod (return error)
-  //   //arrange (mock all function)
-  //   validateUserCredentials.mockResolvedValueOnce({
-  //     email: "alex@gmail.com",
-  //     password: "testciao12",
-  //   });
-  //   findUser.mockResolvedValueOnce({
-  //     rows: [{ Id: 1, username: "alex", email: "alex@gmail.com" }],
-  //     rowCount: 1,
-  //   });
-  //   comparePasswords.mockResolvedValueOnce(true);
-  //   //mockResolvedvalueOnce for promise that resolve to a value
-  //   //mockReturnValueOnce for normal function that return a value
-  //   validateJwtPayload.mockImplementationOnce(() => {
-  //     throw new Error("Invalid payload");
-  //   });
-  //   //use throw new Error if you want to simulate an error that triggers the catch block
-  //   // generateJwtToken.mockImplementationOnce(() => {
-  //   //   throw new Error("Internal server error");
-  //   // });
-  //   //act
-  //   const mock_body = {
-  //     email: "alex@gmail.com",
-  //     password: "testciao12",
-  //   };
-  //   const response = await request(app).post("/auth/login").send(mock_body);
-  //   //assert
-  //   expect(validateUserCredentials).toHaveBeenCalledTimes(1);
-  //   expect(findUser).toHaveBeenCalledTimes(1);
-  //   expect(comparePasswords).toHaveBeenCalledTimes(1);
-  //   expect(validateJwtPayload).toHaveBeenCalledTimes(1);
-  //   expect(generateJwtToken).toHaveBeenCalledTimes(0);
-  //   expect(response.statusCode).toBe(500);
-  //   expect(response.body).toMatchObject({
-  //     message: "Internal server error",
-  //     context: "Invalid payload",
-  //   });
-  // });
+  test("Should return 401 if loginUser throws Invalid Credentials error", async () => {
+    // Arrange
+    loginUser.mockRejectedValueOnce(new Error("Invalid Credentials"));
+
+    const mock_body = {
+      email: "alex@gmail.com",
+      password: "wrongpassword",
+    };
+
+    // Act
+    const response = await request(app).post("/auth/login").send(mock_body);
+
+    // Assert
+    expect(loginUser).toHaveBeenCalledTimes(1);
+    expect(loginUser).toHaveBeenCalledWith(mock_body);
+    expect(response.statusCode).toBe(401);
+    expect(response.body).toMatchObject({
+      message: "Invalid email or password",
+    });
+  });
 
   // test("Should return 401 Unauthorized when comparePasswords resolves to false", async () => {
   //   // Unsuccessful login:
