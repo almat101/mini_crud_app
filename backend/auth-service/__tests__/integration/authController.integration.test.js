@@ -2,10 +2,22 @@ import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import request from "supertest";
 import bcrypt from "bcrypt";
 import pg from "pg";
+import {
+  jest,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  describe,
+  test,
+  expect,
+} from "@jest/globals";
 
 let container;
 let app;
 let pool;
+
+// Timeout per avvio container Docker
+jest.setTimeout(60000);
 
 beforeAll(async () => {
   container = await new PostgreSqlContainer("postgres:17-alpine").start();
