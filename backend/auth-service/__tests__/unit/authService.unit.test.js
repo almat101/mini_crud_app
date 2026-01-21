@@ -190,7 +190,7 @@ describe("Unit test per validateUserCredentials", () => {
 
     //Act Assert
     await expect(validateUserCredentials(invalid_email_login)).rejects.toThrow(
-      "Invalid login data. Please check your input."
+      "Invalid login data."
     );
   });
 
@@ -203,7 +203,7 @@ describe("Unit test per validateUserCredentials", () => {
 
     //Act Assert
     await expect(validateUserCredentials(invalid_email_login)).rejects.toThrow(
-      "Invalid login data. Please check your input."
+      "Invalid login data."
     );
   });
 
@@ -216,7 +216,7 @@ describe("Unit test per validateUserCredentials", () => {
 
     //Act Assert
     await expect(validateUserCredentials(empty_email_login)).rejects.toThrow(
-      "Invalid login data. Please check your input."
+      "Invalid login data."
     );
   });
 
@@ -229,7 +229,7 @@ describe("Unit test per validateUserCredentials", () => {
 
     //Act Assert
     await expect(validateUserCredentials(empty_password_login)).rejects.toThrow(
-      "Invalid login data. Please check your input."
+      "Invalid login data."
     );
   });
 });

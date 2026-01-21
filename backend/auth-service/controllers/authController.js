@@ -81,7 +81,10 @@ export const login = async (req, res) => {
     return res.status(200).json({ message: "Login successful" });
   } catch (error) {
     if (error.message === "Invalid Credentials") {
-      return res.status(401).json({ message: "Invalid email or password" }); // Messaggio generico per sicurezza
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    if (error.message === "Invalid login data.") {
+      return res.status(400).json({ message: "Bad Request" });
     }
     return res.status(500).json({ message: "Internal server error" });
   }
