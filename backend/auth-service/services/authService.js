@@ -120,7 +120,7 @@ export async function validateUserCredentials(user) {
   try {
     return await schema_login.validateAsync(user);
   } catch {
-    throw new Error("Invalid login data. Please check your input.");
+    throw new Error("Invalid login data.");
   }
 }
 

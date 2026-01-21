@@ -20,7 +20,7 @@ jobs:
             npm install
             npm run test:unit
             npm run test:integration
-
+        timeout-minutes: 3
 
     #   - name: Generate dummy .env for CI
     #     run: |
