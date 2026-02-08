@@ -67,26 +67,26 @@ services:
     networks:
       - crud-app
 
-  # orders-service:
-  #   build: 
-  #     context: ./backend/orders-service
-  #     dockerfile: Dockerfile
-  #   container_name: orders-service-crud
-  #   env_file: ".env"
-  #   ports:
-  #     - 4040:3040
-  #   restart: unless-stopped
-  #   depends_on:
-  #     db_orders:
-  #       condition: service_healthy
-  #   healthcheck:
-  #     test: ["CMD", "wget", "--spider", "-q", "http://localhost:3040/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #     start_period: 5s
-  #   networks:
-  #     - crud-app
+  orders-service:
+    build: 
+      context: ./backend/orders-service
+      dockerfile: Dockerfile
+    container_name: orders-service-crud
+    env_file: ".env"
+    ports:
+      - 4040:3040
+    restart: unless-stopped
+    depends_on:
+      db_orders:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3040/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - crud-app
 
   db_auth:
     image: postgres:17-alpine3.22
@@ -139,7 +139,7 @@ services:
     image: postgres:17-alpine3.22
     container_name: db_orders
     restart: always
-    env_file: ".env.dev"
+    env_file: ".env"
     environment:
       - POSTGRES_USER=${POSTGRES_USER_ORDERS}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_ORDERS}

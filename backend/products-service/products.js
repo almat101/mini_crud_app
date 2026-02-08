@@ -32,7 +32,7 @@ function JWT_middleware_decode(req, res, next) {
   // estraggo il token dall headers della richiesta
   // let token = req.headers.authorization?.split(' ')[1];
   const token = req.cookies.token;
-  console.log("token from middleware", token);
+  // console.log("token from middleware", token);
   if (!token)
     return res.status(401).json({ message: "Unauthorized token" });
   try {
@@ -55,9 +55,10 @@ function JWT_middleware_decode(req, res, next) {
 //libreria di node per leggere i file .env ( su python si usa os.environ.get("ENV_VARIABLE"))
 // dotenv.config({ path: '/home/ale/Desktop/express_project_1/.env' })
 
-//                                                             ":method :url :status :response-time ms\ - :res[content-length]"
-// middleware logger utile per stampare info sulla richiesta es "GET /about 200 1.896 ms - 34" 
-app.use(morgan('dev'));
+// middleware logger - skip /health to avoid log noise
+app.use(morgan('dev', {
+  skip: (req, res) => req.url === '/health'
+}));
 
 // middleware che aggiunge vari header di sicurezza alla risposta HTTP
 app.use(helmet());
@@ -92,7 +93,7 @@ app.get('/api/products/', JWT_middleware_decode, async (req,res) =>
     // Ma devo gestire eventuali errori o il fatto che il db sia vuoto o spento
     try {
         let userId = req.user.userId;
-        console.log(userId)
+        // console.log(userId)
         const result = await pool.query(`SELECT * from products WHERE user_id = $1`, [userId]);
         res.status(200).json(result.rows);
     } catch(err) {
@@ -106,7 +107,7 @@ app.get('/api/products/my-home/', JWT_middleware_decode, async (req,res) =>
 {
     try {
         let userId = req.user.userId;
-        console.log(userId)
+        // console.log(userId)
         const result = await pool.query(`SELECT * from products WHERE user_id != $1 AND quantity > 0 ORDER BY created_at DESC`, [userId]);
         res.status(200).json(result.rows);
     } catch(err) {
@@ -145,11 +146,11 @@ app.post('/api/products',JWT_middleware_decode, async (req, res) => {
       return res.status(400).json({ error: "Price must be a valid number" })
     if (!product.category || product.category.trim() === "")
       return res.status(400).json({ error: "Category name required" })
-    // if (!product.user_id || isNaN(product.user_id)) // add user_id for taking the products of a specific user
-    //   return res.status(400).json({ error: "user_id must be a valid number" })
-    const text = 'Insert INTO products (name, price, category, user_id) VALUES ($1, $2, $3, $4) RETURNING *';
-    // This is a simple SQL query that uses placeholders ($1, $2, $3, $4) to prevent SQL injection.
-    const values = [product.name, product.price, product.category, logged_userId];
+    if (product.quantity === undefined || isNaN(product.quantity) || product.quantity < 0)
+      return res.status(400).json({ error: "Quantity must be a valid non-negative number" })
+    const text = 'INSERT INTO products (name, price, category, user_id, quantity) VALUES ($1, $2, $3, $4, $5) RETURNING *';
+    // This is a simple SQL query that uses placeholders ($1, $2, $3, $4, $5) to prevent SQL injection.
+    const values = [product.name, product.price, product.category, logged_userId, product.quantity];
     // 'values' is an array containing the data to be inserted into the database.
     const result = await pool.query( text, values); 
     return res.status(201).send({ message: "Product created" , product: result.rows[0] });
@@ -165,7 +166,7 @@ app.patch('/api/products/:id', JWT_middleware_decode, async(req, res) => {
     if (isNaN(id)) // if parseInt fails check for Nan
         return res.status(400).send("Id is not a number");
     let product = req.body; // body checks
-    if (!('name' in product) && !('price' in product) && !('category' in product) && !('user_id' in product)) // at least one of this exist
+    if (!('name' in product) && !('price' in product) && !('category' in product) && !('quantity' in product)) // at least one of this exist
       return res.status(400).json({ error: "Update at leas one value" });
     if (('name' in product) && product.name.trim() === "") //exist and is not empty
       return res.status(400).json({ message: 'Name must be a valid string'});
@@ -173,8 +174,8 @@ app.patch('/api/products/:id', JWT_middleware_decode, async(req, res) => {
       return res.status(400).json({ message: 'Price must be a valid number'});
     if (('category' in product) && product.category.trim() === "")
       return res.status(400).json({ message: 'Category must be a valid string'});
-    if(('user_id' in product) && isNaN(product.user_id))
-      return res.status(400).json({ message: 'user_id must be a valid number'});
+    if(('quantity' in product) && (isNaN(product.quantity) || product.quantity < 0))
+      return res.status(400).json({ message: 'Quantity must be a valid non-negative number'});
 
     //UPDATE QUERY PG STYLE 
     const field = [];
@@ -194,10 +195,10 @@ app.patch('/api/products/:id', JWT_middleware_decode, async(req, res) => {
       value.push(product.category)
       field.push("category = $" + (value.length));
     }
-    if ('user_id' in product)
+    if ('quantity' in product)
     {
-      value.push(product.user_id)
-      field.push("user_id = $" + (value.length));
+      value.push(product.quantity)
+      field.push("quantity = $" + (value.length));
     }
 
     value.push(id); // need this also

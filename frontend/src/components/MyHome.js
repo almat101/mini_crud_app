@@ -13,23 +13,31 @@ import {
 } from "react-bootstrap";
 
 const isDev = process.env.REACT_APP_IS_DEV === "true";
-const URL = isDev ? "http://localhost:3020/api/products/my-home/" : "/api/products/my-home/";
+const PRODUCTS_URL = isDev ? "http://localhost:3020/api/products" : "/api/products";
 
 //invocazione dell interceptor che aggiunge il token bearer ad ogni richiesta
 // Interceptor();
 
 const MyHome = () => {
-  const [products, setProducts] = useState([]); // List of all products
+  const [products, setProducts] = useState([]);
   const [addFormData, setAddFormData] = useState({
     name: "",
     price: "",
     category: "",
-    user_id: "",
-  }); // For POST
-  const [message, setMessage] = useState(""); // Success/Error messages
+    quantity: "",
+  });
+  const [editFormData, setEditFormData] = useState({
+    id: null,
+    name: "",
+    price: "",
+    category: "",
+    quantity: "",
+  });
+  const [message, setMessage] = useState("");
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const commonCategories = [
     "Electronics",
     "Furniture",
@@ -45,32 +53,25 @@ const MyHome = () => {
   // Fetch all products
   const fetchProducts = useCallback(async () => {
     try {
-      const response = await axios.get(`${URL}`, {
+      const response = await axios.get(`${PRODUCTS_URL}`, {
         withCredentials: true,
       });
       setProducts(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       setMessage("Failed to fetch products");
-      console.log("test")
     }
   }, []);
-
-  const handleShowAddModal = (productId) => {
-    setSelectedProductId(productId);
-    setShowAddModal(true);
-  };
 
   // Add a new product
   const addProduct = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`${URL}`, addFormData, {
+      await axios.post(`${PRODUCTS_URL}`, addFormData, {
         withCredentials: true,
       });
       setMessage("Product added successfully!");
-      console.log(response);
-      fetchProducts(); // Refresh the product list
-      setAddFormData({ name: "", price: "", category: "", user_id: "" });
+      fetchProducts();
+      setAddFormData({ name: "", price: "", category: "", quantity: "" });
     } catch (error) {
       setMessage("Failed to add product");
     } finally {
@@ -83,9 +84,40 @@ const MyHome = () => {
     setShowDeleteModal(true);
   };
 
+  const handleShowEditModal = (product) => {
+    setEditFormData({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      category: product.category,
+      quantity: product.quantity,
+    });
+    setShowEditModal(true);
+  };
+
+  const updateProduct = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.patch(`${PRODUCTS_URL}/${editFormData.id}`, {
+        name: editFormData.name,
+        price: editFormData.price,
+        category: editFormData.category,
+        quantity: editFormData.quantity,
+      }, {
+        withCredentials: true,
+      });
+      setMessage("Product updated successfully!");
+      fetchProducts();
+    } catch (error) {
+      setMessage("Failed to update product");
+    } finally {
+      setShowEditModal(false);
+    }
+  };
+
   const confirmDelete = async () => {
     try {
-      await axios.delete(`${URL}/${selectedProductId}`, {
+      await axios.delete(`${PRODUCTS_URL}/${selectedProductId}`, {
         withCredentials: true,
       });
       setMessage("Product deleted successfully!");
@@ -103,9 +135,18 @@ const MyHome = () => {
   }, [fetchProducts]);
 
   return (
-    <Container>
-      {/* <h1>Product Management</h1> */}
-      {message && <Alert variant="info">{message}</Alert>}
+    <Container className="mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2>My Products</h2>
+        <Button variant="primary" onClick={() => setShowAddModal(true)}>
+          Add New Product
+        </Button>
+      </div>
+      {message && (
+        <Alert variant="info" onClose={() => setMessage("")} dismissible>
+          {message}
+        </Alert>
+      )}
       <Row>
         {products.length > 0 ? (
           products.map((product) => (
@@ -117,29 +158,32 @@ const MyHome = () => {
                     ${product.price}
                   </Card.Subtitle>
                   <Card.Text>Category: {product.category}</Card.Text>
+                  <Card.Text className="text-muted">
+                    Quantity: {product.quantity}
+                  </Card.Text>
 
                   <Button
-                    variant="primary"
+                    variant="outline-primary"
                     className="me-2"
-                    onClick={() => handleShowAddModal(product.id)}
+                    onClick={() => handleShowEditModal(product)}
                   >
-                    Add to chart
+                    Edit
                   </Button>
                   <Button
-                    variant="danger"
+                    variant="outline-danger"
                     onClick={() => handleShowDeleteModal(product.id)}
                   >
-                    Delete from chart
+                    Delete
                   </Button>
                 </Card.Body>
               </Card>
             </Col>
           ))
         ) : (
-          <div className="text-center">
-            <p>No products available</p>
+          <div className="text-center w-100">
+            <p>You don't have any products yet</p>
             <Button variant="primary" onClick={() => setShowAddModal(true)}>
-              Add Product
+              Add Your First Product
             </Button>
           </div>
         )}
@@ -209,17 +253,18 @@ const MyHome = () => {
               </Form.Select>
             </Form.Group>
 
-            {/* <Form.Group className="mb-3" controlId="formProductUserId">
-              <Form.Label>User ID</Form.Label>
+            <Form.Group className="mb-3" controlId="formProductQuantity">
+              <Form.Label>Quantity</Form.Label>
               <Form.Control
                 type="number"
-                placeholder="Enter user ID"
-                value={addFormData.user_id}
+                placeholder="Enter quantity"
+                min="1"
+                value={addFormData.quantity}
                 onChange={(e) =>
-                  setAddFormData({ ...addFormData, user_id: e.target.value })
+                  setAddFormData({ ...addFormData, quantity: e.target.value })
                 }
               />
-            </Form.Group> */}
+            </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
@@ -228,6 +273,79 @@ const MyHome = () => {
           </Button>
           <Button variant="primary" type="submit" onClick={addProduct}>
             Add Product
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Product</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={updateProduct}>
+            <Form.Group className="mb-3" controlId="editProductName">
+              <Form.Label>Product Name</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="Enter product name"
+                value={editFormData.name}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, name: e.target.value })
+                }
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="editProductPrice">
+              <Form.Label>Price</Form.Label>
+              <Form.Control
+                type="number"
+                step="0.01"
+                placeholder="Enter product price"
+                value={editFormData.price}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, price: e.target.value })
+                }
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="editProductCategory">
+              <Form.Label>Category</Form.Label>
+              <Form.Select
+                value={editFormData.category}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, category: e.target.value })
+                }
+              >
+                <option value="">Select category</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+
+            <Form.Group className="mb-3" controlId="editProductQuantity">
+              <Form.Label>Quantity</Form.Label>
+              <Form.Control
+                type="number"
+                placeholder="Enter quantity"
+                min="0"
+                value={editFormData.quantity}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, quantity: e.target.value })
+                }
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={updateProduct}>
+            Save Changes
           </Button>
         </Modal.Footer>
       </Modal>

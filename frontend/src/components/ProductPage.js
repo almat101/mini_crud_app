@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useContext } from "react";
 import axios from "axios";
-// import { AuthContext } from '../context/AuthContext';
-// import { Interceptor } from '../interceptor/axiosInterceptor';
+import { CartContext } from "../context/CartContext";
 
 import {
   Alert,
@@ -10,39 +9,15 @@ import {
   Col,
   Container,
   Row,
-  Modal,
-  Form,
 } from "react-bootstrap";
 
 const isDev = process.env.REACT_APP_IS_DEV === "true";
-const URL = isDev ? "http://localhost:3020/api/products/" : "/api/products/";
-
-//invocazione dell interceptor che aggiunge il token bearer ad ogni richiesta
-// Interceptor();
+const URL = isDev ? "http://localhost:3020/api/products/my-home/" : "/api/products/my-home/";
 
 const ProductPage = () => {
-  const [products, setProducts] = useState([]); // List of all products
-  const [addFormData, setAddFormData] = useState({
-    name: "",
-    price: "",
-    category: "",
-    user_id: "",
-  }); // For POST
-  const [message, setMessage] = useState(""); // Success/Error messages
-  const [selectedProductId, setSelectedProductId] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const commonCategories = [
-    "Electronics",
-    "Furniture",
-    "Accessories",
-    "Clothing",
-    "Home",
-    "Sports",
-    "Toys",
-    "Beauty",
-  ];
-  const [categories] = useState(commonCategories);
+  const { addToCart } = useContext(CartContext);
+  const [products, setProducts] = useState([]);
+  const [message, setMessage] = useState("");
 
   // Fetch all products
   const fetchProducts = useCallback(async () => {
@@ -53,51 +28,8 @@ const ProductPage = () => {
       setProducts(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       setMessage("Failed to fetch products");
-      console.log("test")
     }
   }, []);
-
-  const handleShowAddModal = (productId) => {
-    setSelectedProductId(productId);
-    setShowAddModal(true);
-  };
-
-  // Add a new product
-  const addProduct = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await axios.post(`${URL}`, addFormData, {
-        withCredentials: true,
-      });
-      setMessage("Product added successfully!");
-      console.log(response);
-      fetchProducts(); // Refresh the product list
-      setAddFormData({ name: "", price: "", category: "", user_id: "" });
-    } catch (error) {
-      setMessage("Failed to add product");
-    } finally {
-      setShowAddModal(false);
-    }
-  };
-
-  const handleShowDeleteModal = (productId) => {
-    setSelectedProductId(productId);
-    setShowDeleteModal(true);
-  };
-
-  const confirmDelete = async () => {
-    try {
-      await axios.delete(`${URL}/${selectedProductId}`, {
-        withCredentials: true,
-      });
-      setMessage("Product deleted successfully!");
-      fetchProducts(); // Refresh the product list
-    } catch (error) {
-      setMessage("Failed to delete product");
-    } finally {
-      setShowDeleteModal(false);
-    }
-  };
 
   // Fetch all products on component mount
   useEffect(() => {
@@ -105,9 +37,13 @@ const ProductPage = () => {
   }, [fetchProducts]);
 
   return (
-    <Container>
-      {/* <h1>Product Management</h1> */}
-      {message && <Alert variant="info">{message}</Alert>}
+    <Container className="mt-4">
+      <h2 className="mb-4">Products for Sale</h2>
+      {message && (
+        <Alert variant="info" onClose={() => setMessage("")} dismissible>
+          {message}
+        </Alert>
+      )}
       <Row>
         {products.length > 0 ? (
           products.map((product) => (
@@ -119,19 +55,19 @@ const ProductPage = () => {
                     ${product.price}
                   </Card.Subtitle>
                   <Card.Text>Category: {product.category}</Card.Text>
+                  <Card.Text className="text-muted">
+                    Available: {product.quantity}
+                  </Card.Text>
 
                   <Button
-                    variant="primary"
-                    className="me-2"
-                    onClick={() => handleShowAddModal(product.id)}
+                    variant="success"
+                    onClick={() => {
+                      addToCart(product);
+                      setMessage(`${product.name} added to cart!`);
+                    }}
+                    disabled={product.quantity <= 0}
                   >
-                    Add
-                  </Button>
-                  <Button
-                    variant="danger"
-                    onClick={() => handleShowDeleteModal(product.id)}
-                  >
-                    Delete
+                    Add to Cart
                   </Button>
                 </Card.Body>
               </Card>
@@ -140,99 +76,9 @@ const ProductPage = () => {
         ) : (
           <div className="text-center">
             <p>No products available</p>
-            <Button variant="primary" onClick={() => setShowAddModal(true)}>
-              Add Product
-            </Button>
           </div>
         )}
       </Row>
-
-      {/* Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Deletion</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Are you sure you want to delete this product?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={confirmDelete}>
-            Delete
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Confirmation Modal */}
-      <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Add a New Product</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={addProduct}>
-            <Form.Group className="mb-3" controlId="formProductName">
-              <Form.Label>Product Name</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Enter product name"
-                value={addFormData.name}
-                onChange={(e) =>
-                  setAddFormData({ ...addFormData, name: e.target.value })
-                }
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3" controlId="formProductPrice">
-              <Form.Label>Price</Form.Label>
-              <Form.Control
-                type="number"
-                placeholder="Enter product price"
-                value={addFormData.price}
-                onChange={(e) =>
-                  setAddFormData({ ...addFormData, price: e.target.value })
-                }
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3" controlId="formProductCategory">
-              <Form.Label>Category</Form.Label>
-              <Form.Select
-                value={addFormData.category}
-                onChange={(e) =>
-                  setAddFormData({ ...addFormData, category: e.target.value })
-                }
-              >
-                <option value="">Select category</option>
-                {categories.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-
-            {/* <Form.Group className="mb-3" controlId="formProductUserId">
-              <Form.Label>User ID</Form.Label>
-              <Form.Control
-                type="number"
-                placeholder="Enter user ID"
-                value={addFormData.user_id}
-                onChange={(e) =>
-                  setAddFormData({ ...addFormData, user_id: e.target.value })
-                }
-              />
-            </Form.Group> */}
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAddModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" type="submit" onClick={addProduct}>
-            Add Product
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </Container>
   );
 };

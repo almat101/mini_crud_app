@@ -24,3 +24,19 @@ npm i -D typescript @types/node tsx
 **How to run**
 - Development: `npm run dev`
 - Production: `npm run build && npm run start`
+
+## Redis-cli comandi utili
+
+docker exec -it <redis_container_name> redis-cli
+
+## Vedere TUTTI i messaggi dallo stream (dall'inizio)
+XREAD STREAMS orders_stream 0
+
+## Vedere solo i messaggi con un range specifico
+XRANGE orders_stream - +
+
+## Vedere gli ultimi N messaggi
+XREVRANGE orders_stream + - COUNT 5
+
+## Vedere info sullo stream (lunghezza, primo/ultimo messaggio, ecc.)
+XINFO STREAM orders_stream

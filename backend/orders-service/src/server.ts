@@ -2,17 +2,61 @@ import Fastify from "fastify";
 import {db} from "./db/index.js"
 import { orders, orderItems } from "./db/schema.js";
 import { getRedisClient } from "./redis/redisClient.js"
+import cors from "@fastify/cors";
+import cookie from "@fastify/cookie";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
+
+
+dotenv.config();
 
 const server = Fastify({
   logger: true,
 });
 
-server.get("/ping", async (request, reply) => {
+
+server.register(cors, {
+  origin: ['http://localhost:3000', 'http://localhost', 'https://crud1.alematta.com'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+  credentials: true
+});
+
+server.register(cookie);
+
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    user?: { userId: number; username: string; email: string };
+  }
+
+}
+// Middleware per decodificare JWT
+server.addHook('preHandler', async (request, reply) => {
+  // Skip per health check e ping
+  if (request.url === '/health' || request.url === '/ping') {
+    return;
+  }
+
+  const token = request.cookies.token;
+  console.log("token: ", token);
+  if (!token) {
+    return reply.code(401).send({ message: "Unauthorized: No token" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    request.user = decoded as { userId: number; username: string; email: string };
+  } catch (error) {
+    return reply.code(401).send({ message: "Unauthorized: Invalid token" });
+  }
+});
+
+server.get("/ping", { logLevel: 'silent' }, async (request, reply) => {
   reply.type("application/json").code(200);
   return 'pong\n';
 });
 
-server.get('/health', (reqquest, reply) => {
+server.get('/health', { logLevel: 'silent' }, (reqquest, reply) => {
   reply.status(200).send({ status: 'ok' });
 });
 
@@ -40,7 +84,7 @@ interface IOrderItem {
 }
 
 interface IOrderBody{
-  user_id: number;
+  // user_id: number;
   total_price: string; // DECIMAL --> string
   status?: "PENDING" | "COMPLETED";
   items: IOrderItem[];
@@ -52,10 +96,13 @@ server.post<{ Body: IOrderBody }>("/orders", async (request, reply) => {
   //non conviene usare questo modo definendo tutto il body as any;
   // const { user_id, total_price, items }  = request.body as any;
   //usiamo invece un generics per preservare il tipo, abilitare il type-safety e autocompletamento
-  // console.log("headers", request.headers);
-  // console.log("body", request.body);
+  console.log("headers", request.headers);
+  console.log("body", request.body);
+  console.log("user from JWT", request.user);  // <-- Dal middleware
 
-  const { user_id, total_price, status, items }  = request.body;
+  const user_id = request.user!.userId;  // <-- Dal JWT, NON dal body!
+
+  const { total_price, status, items }  = request.body;
 
   try {
     const orderID = await db.transaction(
@@ -98,7 +145,7 @@ server.post<{ Body: IOrderBody }>("/orders", async (request, reply) => {
   
 });
 
-server.listen({ port: 3040 }, (err, address) => {
+server.listen({ port: 3040, host: '0.0.0.0' }, (err, address) => {
   if (err) throw err;
   server.log.info(`server listening on ${address}`)
 });

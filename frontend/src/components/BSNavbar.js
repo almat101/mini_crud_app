@@ -1,6 +1,7 @@
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import { Container, Nav, Navbar, NavDropdown, Toast } from "react-bootstrap";
+import { CartContext } from "../context/CartContext";
+import { Container, Nav, Navbar, NavDropdown, Toast, Badge } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useState } from "react";
@@ -14,6 +15,7 @@ const BSNavbar = () => {
   const [showToast, setShowToast] = useState(false);
 
   const { isAuth, logout } = useContext(AuthContext);
+  const { getCartCount } = useContext(CartContext);
 
   const navigate = useNavigate();
 
@@ -57,15 +59,24 @@ const BSNavbar = () => {
       </Toast>
       <Navbar expand="md" className="bg-body-tertiary" sticky="top">
         <Container>
-          <Navbar.Brand>Mini-CRUD app</Navbar.Brand>
+          <Navbar.Brand>Secure E-commerce</Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav className="me-auto">
-              {!isAuth && <Nav.Link href="/home">Home</Nav.Link>}
+              {isAuth && <Nav.Link href="/home">My products</Nav.Link>}
               {!isAuth && <Nav.Link href="/login">Login</Nav.Link>}
               {!isAuth && <Nav.Link href="/signup">Signup</Nav.Link>}
-              {isAuth && <Nav.Link href="/products">My products</Nav.Link>}
-              {isAuth && <Nav.Link href="/my-home">My home</Nav.Link>}
+              {isAuth && <Nav.Link href="/products">Buy products</Nav.Link>}
+              {isAuth && (
+                <Nav.Link href="/cart">
+                  Cart{" "}
+                  {getCartCount() > 0 && (
+                    <Badge bg="danger" pill>
+                      {getCartCount()}
+                    </Badge>
+                  )}
+                </Nav.Link>
+              )}
             </Nav>
             <Nav className="ms-auto">
               {isAuth && (
