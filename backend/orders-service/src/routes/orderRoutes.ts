@@ -64,6 +64,17 @@ export default async function orderRoutes( server : FastifyInstance) {
     try {
       const result = await orderService.createOrder( user_id, total_price, status, items);
 
+      // Structured JSON logging for audit/observability (Grafana/Loki etc.)
+      // Pino (Fastify's logger) outputs JSON by default, making it easy to query logs.
+      // Example query in Loki: {app="orders-service"} | json | event="ORDER_CREATED"
+      request.log.info({
+        event: 'ORDER_CREATED',
+        status: status,
+        userId: user_id,
+        orderId: result.orderId,
+        itemCount: result.itemCount
+      }, "Order created");
+
       reply.code(201).send({ 
         message:"orders created successfully!",
         orderId: result.orderId,

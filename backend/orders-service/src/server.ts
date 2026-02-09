@@ -1,4 +1,6 @@
 import server from "./app.js"
+import { closeDbPool } from "./db/index.js";
+import { closeRedisClient } from "./redis/redisClient.js";
 
 // Separating app configuration from server startup allows for better testing.
 // Tests can import 'app' without starting the server on a port.
@@ -15,7 +17,20 @@ const startServer = async () => {
     server.log.error(err);
     process.exit(1);
   }  
-}  
+}
+
+const shutdown = async () => {
+  console.log('Shutting down...');
+  await server.close();
+  await closeRedisClient();
+  await closeDbPool();
+  console.log('Shutdown complete');
+  process.exit(0);
+}
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+
 
 startServer();
 
