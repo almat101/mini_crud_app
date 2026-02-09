@@ -22,3 +22,15 @@ export function getPool () {
   }
   return pool;
 }
+
+/**
+ * Gracefully closes the PostgreSQL connection pool.
+ * Call this on application shutdown.
+ */
+export async function closePool() {
+  if (pool) {
+    await pool.end();
+    pool = null;
+    console.log('PostgreSQL: Connection pool closed');
+  }
+}

@@ -7,9 +7,13 @@ import jwt from 'jsonwebtoken'
 import cookieParser from "cookie-parser";
 import { getPool } from './db/getPool.js';
 import { startConsumer } from './consumer/ordersConsumer.js';
+import { closeRedisClient } from './redis/redisClient.js';
+import { closePool } from './db/getPool.js';
+
+let server;
+const port = 3020;
 
 const app = express();
-const port = 3020;
 
 const pool = getPool();
 
@@ -233,7 +237,7 @@ app.delete('/api/products/:id', JWT_middleware_decode, async (req, res) => {
 
 async function startServer() {
   await startConsumer();
-  app.listen(port, () => {
+  server = app.listen(port, () => {
     console.log(`Product-service listening on port ${port}`)
     console.log(`
       Route available:
@@ -250,3 +254,20 @@ startServer().catch(err => {
   console.error("Failed to start:", err);
   process.exit(1);
 })
+
+// Graceful shutdown
+const shutdown = async () => {
+    console.log('Shutting down...');
+    
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+      console.log('Express: Server closed');
+    }
+    await closeRedisClient();
+    await closePool();
+    // chiudi anche pg se usi un pool
+    process.exit(0);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
