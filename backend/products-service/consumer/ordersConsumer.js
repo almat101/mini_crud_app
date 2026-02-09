@@ -108,12 +108,19 @@ export async function startConsumer() {
 
 async function listenForMessage() {
     let lastId = "$";
+    let isRedisDown = false;
     // `results` is an array, each element of which corresponds to a key.
     // Because we only listen to one key (mystream) here, `results` only contains
     // a single element. See more: https://redis.io/commands/xread#return-value
     while (true) {
       try {
         const results = await redis.xread("BLOCK", 0, "STREAMS", "orders_stream", lastId);
+
+         if (isRedisDown) {
+          console.log("Consumer: Redis reconnected, resuming...");
+          isRedisDown = false;
+        }
+
         const [key, messages] = results[0]; // `key` equals to "mystream"
 
         for (const msg of messages) {
@@ -125,7 +132,11 @@ async function listenForMessage() {
         // Pass the last id of the results to the next round.
         lastId = messages[messages.length - 1][0];  // Update for next iteration
       } catch (error) {
-        console.error("Consumer error:", error);
+        if (!isRedisDown) {
+          // Log only once when Redis goes down
+          console.error("Consumer: Redis connection lost, retrying every 5s...");
+          isRedisDown = true;
+        }
           await new Promise(resolve => setTimeout(resolve, 5000));  // Wait 5s before retry
       }
     }

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { db } from "../db/index.js";
 import { sql } from "drizzle-orm";
 import { getRedisClient } from '../redis/redisClient.js'; 
+import { rejects } from 'assert/strict';
 
 export default function healthRoutes(server:FastifyInstance) {
   
@@ -29,7 +30,10 @@ export default function healthRoutes(server:FastifyInstance) {
 
     try {
       const redis = await getRedisClient();
-      await redis.ping();
+      await Promise.race([
+        redis.ping(),
+         new Promise((_, reject) => setTimeout(() => reject(new Error("Redis ping timeout")), 2000))
+      ]);
     } catch (error) {
       health.status = 'not ready';
       health.redis = error instanceof Error ? error.message : 'error';

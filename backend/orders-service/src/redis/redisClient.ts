@@ -11,10 +11,10 @@ export async function getRedisClient(): Promise<Redis> {
             host: process.env.REDIS_HOST,
             port: Number(process.env.REDIS_PORT),
             retryStrategy: (times) => {
-                if( times > 10 ) {
-                    console.error("Redis: Max retries reached.");
-                    return null;
-                }
+                // if( times > 10 ) {
+                //     console.error("Redis: Max retries reached.");
+                //     return null;
+                // }
                 const delay = Math.min(times * 500, 5000);
                 console.log(`Redis: Retry attempt ${times}, waiting ${delay}ms`);
                 return delay;
