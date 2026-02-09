@@ -1,3 +1,45 @@
+# Project Architecture
+
+This service follows a layered architecture similar to MVC, adapted for Fastify:
+
+```
+src/
+├── app.ts              # Fastify app configuration (plugins, hooks, routes registration)
+├── server.ts           # Server startup (separated for testing)
+├── routes/             # ROUTES (replaces Controllers in Fastify)
+│   ├── orderRoutes.ts  # HTTP endpoints, request validation, calls services
+│   └── healthRoutes.ts # Health check endpoints
+├── services/           # SERVICES (Business Logic)
+│   └── orderService.ts # Business logic, transactions, Redis publishing
+├── db/                 # DATABASE (acts as Repository)
+│   ├── index.ts        # Drizzle client
+│   └── schema.ts       # Drizzle schema (orders, orderItems tables)
+├── middleware/         # MIDDLEWARE (Hooks)
+│   └── authMiddleware.ts # JWT authentication hook
+├── types/              # TypeScript interfaces
+│   └── orderInterfaces.ts # IOrderBody, IOrderItem, FastifyRequest augmentation
+├── redis/              # Redis client
+│   └── redisClient.ts  # Redis connection
+└── consumers/          # Event consumers (for Redis Streams)
+```
+
+### Layer Responsibilities
+
+| Layer | Fastify Equivalent | Responsibility |
+|-------|-------------------|----------------|
+| **Routes** | Controller | HTTP handling, validation, request/response |
+| **Services** | Service | Business logic, transactions, external calls |
+| **DB** | Repository | Database operations with Drizzle ORM |
+| **Middleware** | Hooks | Cross-cutting concerns (auth, logging) |
+
+### Request Flow
+
+```
+Request → Middleware (authMiddleware) → Route (orderRoutes) → Service (orderService) → DB/Redis → Response
+```
+
+---
+
 # Orders Service — Setup Summary
 
 - **Project type:** TypeScript-only Fastify service.
@@ -25,7 +67,10 @@ npm i -D typescript @types/node tsx
 - Development: `npm run dev`
 - Production: `npm run build && npm run start`
 
-## Redis-cli comandi utili
+---
+
+
+# Redis-cli comandi utili
 
 docker exec -it <redis_container_name> redis-cli
 
