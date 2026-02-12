@@ -22,6 +22,6 @@ server.addHook('preHandler', authMiddleware);
 
 server.register(healthRoutes, { prefix: '/health' }); // plugin isolato plugin = funzione che riceve l'istanza fastify e ci registra sopra rotte/hook/decoratori.
 
-server.register(orderRoutes, { prefix: '/orders'});
+server.register(orderRoutes, { prefix: '/api/orders'});
 
 export default server;

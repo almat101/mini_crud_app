@@ -10,6 +10,7 @@
   community.docker.docker_compose_v2:
     project_src: "{{ app_dest_path }}"
     state: absent # Arresta e rimuove i container e le reti
+    remove_volumes: true #Aggiunto per evitare errori con le tabelle (all aggiunta di nuove colonne es quantity) che inizializzano i db con script init
   ignore_errors: yes # Ignora errori se i servizi non sono ancora attivi
   become: yes
   become_user: "{{ app_owner_user }}"
