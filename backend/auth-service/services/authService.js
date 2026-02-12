@@ -1,6 +1,7 @@
 import Joi from "joi";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import * as authRepository from "../repositories/authRepository.js";
 
 //schema per /login
 const schema_login = Joi.object({
@@ -50,11 +51,76 @@ const jwtPayloadSchema = Joi.object({
   email: Joi.string().email().required(),
 });
 
+/**
+ * Authenticates a user and generates a JWT token
+ * @async
+ * @param {Object} userData - User login credentials
+ * @param {string} userData.email - User's email address
+ * @param {string} userData.password - User's password (plaintext)
+ * @returns {Promise<string>} JWT token
+ * @throws {Error} "Invalid Credentials" - If email not found or password doesn't match
+ * @throws {Error} "Invalid login data" - If validation fails
+ * @throws {Error} "Invalid payload" - If JWT payload validation fails
+ */
+export const loginUser = async (userData) => {
+  const validatedUser = await validateUserCredentials(userData);
+
+  const queryResult = await authRepository.findUser(userData.email);
+  if (queryResult.rowCount === 0) {
+    throw new Error("Invalid Credentials");
+  }
+
+  const user = queryResult.rows[0];
+  const isMatch = await comparePasswords(
+    validatedUser.password,
+    user.password_hash
+  );
+  if (!isMatch) {
+    throw new Error("Invalid Credentials");
+  }
+
+  const payload = {
+    userId: user.id,
+    username: user.username,
+    email: user.email,
+  };
+
+  validateJwtPayload(payload);
+  const token = generateJwtToken(payload, process.env.JWT_SECRET, {
+    expiresIn: "7d", // at the moment i have to use 7day maxAge then i will implement a refresh token endpoint
+  });
+
+  return token;
+};
+
+/**
+ * Authenticates a demo user and generates a JWT token
+ * @async
+ * @param {string} demoUserData - Demo user's email address
+ * @returns {Promise<string}>} JWT token
+ * @throws {Error} "Invalid payload" - If JWT payload validation fails
+ */
+export const demoLoginUser = async (demoUserData) => {
+  const user = await authRepository.findUser(demoUserData);
+  const demo_user = user.rows[0];
+  const payload = {
+    userId: demo_user.id,
+    username: demo_user.username,
+    email: demo_user.email,
+  };
+  validateJwtPayload(payload);
+  const token = generateJwtToken(payload, process.env.JWT_SECRET, {
+    expiresIn: "7d", // at the moment i have to use 7day maxAge then i will implement a refresh token endpoint
+  });
+
+  return token;
+};
+
 export async function validateUserCredentials(user) {
   try {
     return await schema_login.validateAsync(user);
   } catch {
-    throw new Error("Invalid login data. Please check your input.");
+    throw new Error("Invalid login data.");
   }
 }
 

@@ -1,599 +1,164 @@
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
-
-// Mock the repository module before importing app.js
-jest.unstable_mockModule("../../repositories/authRepository.js", () => ({
-  createUser: jest.fn(),
-  executePrevQuery: jest.fn(),
-  findUser: jest.fn(),
-  testDatabaseConnection: jest.fn(),
-}));
-
-jest.unstable_mockModule("../../services/authService.js", () => ({
-  validateSignupData: jest.fn(),
-  comparePasswords: jest.fn(),
-  generateJwtToken: jest.fn(),
-  hashPassword: jest.fn(),
-  validateUserCredentials: jest.fn(),
-  validateJwtPayload: jest.fn(),
-}));
-
+import { PostgreSqlContainer } from "@testcontainers/postgresql";
 import request from "supertest";
+import bcrypt from "bcrypt";
+import pg from "pg";
+import {
+  jest,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  describe,
+  test,
+  expect,
+} from "@jest/globals";
 
-const { createUser, executePrevQuery, findUser, testDatabaseConnection } =
-  await import("../../repositories/authRepository.js");
+let container;
+let app;
+let pool;
 
-const {
-  validateSignupData,
-  comparePasswords,
-  validateUserCredentials,
-  validateJwtPayload,
-  generateJwtToken,
-  hashPassword,
-} = await import("../../services/authService.js");
-const { default: app } = await import("../../app.js");
+// Timeout per avvio container Docker
+jest.setTimeout(60000);
 
-describe("Integration test for /signup", () => {
-  beforeEach(() => {
-    //mockReset resets the mock implementation for grant isolation in each tests
-    validateSignupData.mockReset();
-    hashPassword.mockReset();
-    executePrevQuery.mockReset();
-    createUser.mockReset();
-    testDatabaseConnection.mockReset();
+beforeAll(async () => {
+  container = await new PostgreSqlContainer("postgres:17-alpine").start();
+
+  process.env.POSTGRES_HOST_AUTH = container.getHost();
+  process.env.POSTGRES_PORT_AUTH = container.getPort().toString();
+  process.env.POSTGRES_USER_AUTH = container.getUsername();
+  process.env.POSTGRES_PASSWORD_AUTH = container.getPassword();
+  process.env.POSTGRES_DB_AUTH = container.getDatabase();
+  process.env.JWT_SECRET = "test-secret-key-for-integration-tests";
+
+  pool = new pg.Pool({
+    host: container.getHost(),
+    port: container.getPort().toString(),
+    user: container.getUsername(),
+    password: container.getPassword(),
+    database: container.getDatabase(),
   });
 
-  test("Should return 201 and the created user on successful signup.", async () => {
-    // Successful signup:
-    // - validateSignupData resolves (valid input)
-    // - hashPassword resolves (password hashed successfully)
-    // - executePrevQuery resolves (no existing user found)
-    // - createUser resolves (user created in database)
-    validateSignupData.mockResolvedValueOnce({
-      username: "alex",
-      password: "test12ciao",
-      repeat_password: "test12ciao",
-      email: "alex@gmail.com",
-    });
-    hashPassword.mockResolvedValueOnce("hashed_pasword");
-    executePrevQuery.mockResolvedValueOnce({ row: [], rowCount: 0 });
-    createUser.mockResolvedValueOnce({
-      rows: [{ id: "1", username: "alex", email: "alex@gmail.com" }],
-      rowCount: 1,
-    });
-    //arrange
-    const mockSignupBody = {
-      username: "alex",
-      password: "test12ciao",
-      repeat_password: "test12ciao",
-      email: "alex@gmail.com",
-    };
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      username VARCHAR(50) UNIQUE NOT NULL,
+      email VARCHAR(255) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 
-    //act
-    const response = await request(app)
-      .post("/auth/signup")
-      .send(mockSignupBody);
-
-    //assert (successfull signup all function are called and resolve to a valid value)
-    expect(validateSignupData).toHaveBeenCalledTimes(1);
-    expect(hashPassword).toHaveBeenCalledTimes(1);
-    expect(executePrevQuery).toHaveBeenCalledTimes(1);
-    expect(createUser).toHaveBeenCalledTimes(1);
-    expect(createUser).toHaveBeenCalledWith(
-      "alex",
-      "alex@gmail.com",
-      expect.any(String)
-    );
-    expect(response.statusCode).toBe(201);
-    expect(response.body).toMatchObject({
-      message: "User created",
-      user: {
-        username: "alex",
-        email: "alex@gmail.com",
-        id: "1",
-      },
-    });
-  });
-
-  test("Should return 500 if createUser throws an error during signup.", async () => {
-    // Error on signup:
-    // - validateSignupData resolves (valid input)
-    // - hashPassword resolves (password hashed successfully)
-    // - executePrevQuery resolves (no existing user found)
-    // - createUser reject
-    validateSignupData.mockResolvedValueOnce({
-      username: "alex",
-      password: "test12ciao",
-      repeat_password: "test12ciao",
-      email: "alex@gmail.com",
-    });
-    hashPassword.mockResolvedValueOnce("hashed_pasword");
-    executePrevQuery.mockResolvedValueOnce({ row: [], rowCount: 0 });
-    createUser.mockRejectedValueOnce();
-
-    //arrange
-    const mockSignupBody = {
-      username: "alex",
-      password: "test12ciao",
-      repeat_password: "test12ciao",
-      email: "alex@gmail.com",
-    };
-
-    //act
-    const response = await request(app)
-      .post("/auth/signup")
-      .send(mockSignupBody);
-
-    //assert (successfull signup all function are called and resolve to a valid value)
-    expect(validateSignupData).toHaveBeenCalledTimes(1);
-    expect(hashPassword).toHaveBeenCalledTimes(1);
-    expect(executePrevQuery).toHaveBeenCalledTimes(1);
-    expect(createUser).toHaveBeenCalledTimes(1);
-
-    expect(response.statusCode).toBe(500);
-    expect(response.body).toMatchObject({ message: "Internal server error" });
-  });
-
-  test("Should return 409 Conflict if username or email already exists in the database.", async () => {
-    // Error on signup:
-    // - validateSignupData resolves (valid input)
-    // - hashPassword resolves (password hashed successfully)
-    // - executePrevQuery resolves (founding the same user so it goes to 409 same user)
-    validateSignupData.mockResolvedValueOnce({
-      username: "alex",
-      password: "test12ciao",
-      repeat_password: "test12ciao",
-      email: "alex@gmail.com",
-    });
-    hashPassword.mockResolvedValueOnce("hashed_pasword");
-    executePrevQuery.mockResolvedValueOnce({
-      rows: [{ id: "1", username: "alex", email: "alex@gmail.com" }],
-      rowCount: 1,
-    });
-    //arrange
-    const mockSignupBody = {
-      username: "alex",
-      password: "test12ciao",
-      repeat_password: "test12ciao",
-      email: "alex@gmail.com",
-    };
-
-    //act
-    const response = await request(app)
-      .post("/auth/signup")
-      .send(mockSignupBody);
-
-    // assert;
-    expect(validateSignupData).toHaveBeenCalledTimes(1);
-    expect(hashPassword).toHaveBeenCalledTimes(1);
-    expect(executePrevQuery).toHaveBeenCalledTimes(1);
-    expect(createUser).toHaveBeenCalledTimes(0);
-    expect(response.statusCode).toBe(409);
-    expect(response.body).toMatchObject({
-      message: "Username or Email already exists",
-    });
-  });
-
-  test("Should return 500 if executePrevQuery throws an error during signup.", async () => {
-    // Error on signup:
-    // - validateSignupData resolves (valid input)
-    // - hashPassword resolves (password hashed successfully)
-    // - executePrevQuery rejects
-    validateSignupData.mockResolvedValueOnce({
-      username: "alex",
-      password: "test12ciao",
-      repeat_password: "test12ciao",
-      email: "alex@gmail.com",
-    });
-    hashPassword.mockResolvedValueOnce("hashed_pasword");
-    executePrevQuery.mockRejectedValueOnce();
-    //arrange
-    const mockSignupBody = {
-      username: "alex",
-      password: "test12ciao",
-      repeat_password: "test12ciao",
-      email: "alex@gmail.com",
-    };
-
-    //act
-    const response = await request(app)
-      .post("/auth/signup")
-      .send(mockSignupBody);
-
-    // assert;
-    expect(validateSignupData).toHaveBeenCalledTimes(1);
-    expect(hashPassword).toHaveBeenCalledTimes(1);
-    expect(executePrevQuery).toHaveBeenCalledTimes(1);
-    expect(createUser).toHaveBeenCalledTimes(0);
-    expect(response.statusCode).toBe(500);
-    expect(response.body).toMatchObject({ message: "ExecutePrevQuery Error" });
-  });
-
-  test("Should return 400 if validateSignupData rejects invalid input.", async () => {
-    // Error on signup:
-    // - validateSignupData rejects (valid input)
-    validateSignupData.mockRejectedValueOnce();
-
-    //arrange
-    const mockSignupBody = {
-      username: "alex",
-      password: "test12ciao",
-      repeat_password: "test12ciao",
-      email: "alex@gmail.com",
-    };
-
-    //act
-    const response = await request(app)
-      .post("/auth/signup")
-      .send(mockSignupBody);
-
-    // assert;
-    // expect(validateSignupData).toHaveBeenCalledTimes(1);
-    // expect(createUser).toHaveBeenCalledTimes(0);
-    expect(response.statusCode).toBe(400);
-    expect(response.body).toMatchObject({ message: "Validation Error" });
-  });
-
-  test("Should return 500 if hashPassword throws an error during signup.", async () => {
-    //Error on signup:
-    // - validateSignupData rejects
-    validateSignupData.mockResolvedValueOnce({
-      username: "alex",
-      password: "test12ciao",
-      repeat_password: "test12ciao",
-      email: "alex@gmail.com",
-    });
-    //mock that reject the promise
-    hashPassword.mockRejectedValueOnce();
-
-    //arrange
-    const mockSignupBody = {
-      username: "alex",
-      password: "test12ciao",
-      repeat_password: "test12ciao",
-      email: "alex@gmail.com",
-    };
-
-    //act
-    const response = await request(app)
-      .post("/auth/signup")
-      .send(mockSignupBody);
-
-    // assert;
-    expect(validateSignupData).toHaveBeenCalledTimes(1);
-    expect(hashPassword).toHaveBeenCalledTimes(1);
-    expect(createUser).toHaveBeenCalledTimes(0);
-    expect(response.statusCode).toBe(500);
-    expect(response.body).toMatchObject({ message: "Hashing Error" });
-  });
-
-  test("Should return 400 if empty body was sent.", async () => {
-    //Error on signup:
-    // - validateSignupData rejects throwing an errro
-    validateSignupData.mockRejectedValueOnce({ message: "Validation Error" });
-
-    //arrange
-    const mockSignupBody = {};
-
-    //act
-    const response = await request(app)
-      .post("/auth/signup")
-      .send(mockSignupBody);
-
-    // assert;
-    expect(validateSignupData).toHaveBeenCalledTimes(1);
-    expect(createUser).toHaveBeenCalledTimes(0);
-    expect(response.statusCode).toBe(400);
-    expect(response.body).toMatchObject({ message: "Validation Error" });
-  });
+  // Import dinamico DOPO aver settato le env variables
+  const appModule = await import("../../app.js");
+  app = appModule.default;
 });
+
+afterAll(async () => {
+  // Chiudi il pool dell'app (creato da getPool)
+  const dbModule = await import("../../config/database.js");
+  const appPool = dbModule.getPool();
+  if (appPool) await appPool.end();
+
+  // Chiudi il pool del test
+  if (pool) await pool.end();
+
+  // Ferma il container
+  if (container) await container.stop();
+});
+
+beforeEach(async () => {
+  // Pulizia tabella ad ogni test
+  await pool.query("DELETE FROM users");
+});
+
+// Helper per creare utente di test
+async function createTestUser(username, email, password) {
+  const hash = await bcrypt.hash(password, 10);
+  const result = await pool.query(
+    "INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email",
+    [username, email, hash]
+  );
+  return result.rows[0];
+}
 
 describe("Integration test for /login", () => {
-  beforeEach(() => {
-    validateUserCredentials.mockReset();
-    findUser.mockReset();
-    comparePasswords.mockReset();
-    validateJwtPayload.mockReset();
-    generateJwtToken.mockReset();
-  });
+  test("Should return 200, set JWT cookie on valid login", async () => {
+    // Crea utente di test
+    await createTestUser("alex", "alex@gmail.com", "testciao12");
 
-  test("Should return 200 and a success message with the login token and user ID on valid login.", async () => {
-    // Successful login:
-    // - validateUserCredential resolves (valid input)
-    // - findUser resolves (user founded in the db)
-    // - comparePassword resolves (password is the same)
-    // - validateJwtPaylod (payload is valid)
-    // - generateJwtToken resolves (generate and return the token to the frontend)
-    //arrange (mock all function)
-    validateUserCredentials.mockResolvedValueOnce({
-      email: "alex@gmail.com",
-      password: "testciao12",
-    });
-    findUser.mockResolvedValueOnce({
-      rows: [{ id: 1, username: "alex", email: "alex@gmail.com" }],
-      rowCount: 1,
-    });
-    comparePasswords.mockResolvedValueOnce(true);
-    //mockResolvedvalueOnce for promise that resolve to a value
-    //mockReturnValueOnce for normal function that return a value
-    validateJwtPayload.mockReturnValueOnce({
-      userId: 1,
-      username: "alex",
-      email: "alex@gmail.com",
-    });
-    //mockReturnValueOnce for normal function that return a value
-    generateJwtToken.mockReturnValueOnce("generated_JWT_token");
-    //act
-    const mock_body = {
+    const loginBody = {
       email: "alex@gmail.com",
       password: "testciao12",
     };
-    const response = await request(app).post("/auth/login").send(mock_body);
-    //assert
-    expect(validateUserCredentials).toHaveBeenCalledTimes(1);
-    expect(findUser).toHaveBeenCalledTimes(1);
-    expect(comparePasswords).toHaveBeenCalledTimes(1);
-    expect(validateJwtPayload).toHaveBeenCalledTimes(1);
-    expect(generateJwtToken).toHaveBeenCalledTimes(1);
+
+    const response = await request(app).post("/auth/login").send(loginBody);
+
     expect(response.statusCode).toBe(200);
-    expect(response.body).toMatchObject({
-      message: "Login successful",
-    });
+    expect(response.body).toMatchObject({ message: "Login successful" });
+
+    const cookies = response.headers["set-cookie"];
+    expect(cookies).toBeDefined();
+    expect(cookies[0]).toContain("token=");
+    expect(cookies[0]).toContain("HttpOnly");
   });
 
-  test("Should return 500 if generateJWTtoken fails during login", async () => {
-    // Unsuccessful login:
-    // - validateUserCredential resolves (valid input)
-    // - findUser resolves (user founded in the db)
-    // - comparePassword resolves (password is the same)
-    // - validateJwtPaylod (payload is valid)
-    // - generateJwtToken rejects (return the object error in its try/catch block)
-    //arrange (mock all function)
-    validateUserCredentials.mockResolvedValueOnce({
-      email: "alex@gmail.com",
-      password: "testciao12",
-    });
-    findUser.mockResolvedValueOnce({
-      rows: [{ Id: 1, username: "alex", email: "alex@gmail.com" }],
-      rowCount: 1,
-    });
-    comparePasswords.mockResolvedValueOnce(true);
-    //mockResolvedvalueOnce for promise that resolve to a value
-    //mockReturnValueOnce for normal function that return a value
-    validateJwtPayload.mockReturnValueOnce({
-      userId: 1,
-      username: "alex",
-      email: "alex@gmail.com",
-    });
-    //use throw new Error if you want to simulate an error that triggers the catch block
-    generateJwtToken.mockImplementationOnce(() => {
-      throw new Error("Internal server error");
-    });
-    //act
-    const mock_body = {
-      email: "alex@gmail.com",
-      password: "testciao12",
-    };
-    const response = await request(app).post("/auth/login").send(mock_body);
-    //assert
-    expect(validateUserCredentials).toHaveBeenCalledTimes(1);
-    expect(findUser).toHaveBeenCalledTimes(1);
-    expect(comparePasswords).toHaveBeenCalledTimes(1);
-    expect(validateJwtPayload).toHaveBeenCalledTimes(1);
-    expect(generateJwtToken).toHaveBeenCalledTimes(1);
-    expect(response.statusCode).toBe(500);
-    expect(response.body).toMatchObject({ message: "Internal server error" });
-  });
+  test("Should return 401 on wrong password", async () => {
+    await createTestUser("alex", "alex@gmail.com", "testciao12");
 
-  test("Should return 500 Internal Server Error if validateJwtPayload throws an error.", async () => {
-    // Unsuccessful login:
-    // - validateUserCredential resolves (valid input)
-    // - findUser resolves (user founded in the db)
-    // - comparePassword resolves (password is the same)
-    // - validateJwtPaylod (return error)
-    //arrange (mock all function)
-    validateUserCredentials.mockResolvedValueOnce({
+    const loginBody = {
       email: "alex@gmail.com",
-      password: "testciao12",
-    });
-    findUser.mockResolvedValueOnce({
-      rows: [{ Id: 1, username: "alex", email: "alex@gmail.com" }],
-      rowCount: 1,
-    });
-    comparePasswords.mockResolvedValueOnce(true);
-    //mockResolvedvalueOnce for promise that resolve to a value
-    //mockReturnValueOnce for normal function that return a value
-    validateJwtPayload.mockImplementationOnce(() => {
-      throw new Error("Invalid payload");
-    });
-    //use throw new Error if you want to simulate an error that triggers the catch block
-    // generateJwtToken.mockImplementationOnce(() => {
-    //   throw new Error("Internal server error");
-    // });
-    //act
-    const mock_body = {
-      email: "alex@gmail.com",
-      password: "testciao12",
+      password: "wrongpassword123",
     };
-    const response = await request(app).post("/auth/login").send(mock_body);
-    //assert
-    expect(validateUserCredentials).toHaveBeenCalledTimes(1);
-    expect(findUser).toHaveBeenCalledTimes(1);
-    expect(comparePasswords).toHaveBeenCalledTimes(1);
-    expect(validateJwtPayload).toHaveBeenCalledTimes(1);
-    expect(generateJwtToken).toHaveBeenCalledTimes(0);
-    expect(response.statusCode).toBe(500);
-    expect(response.body).toMatchObject({
-      message: "Internal server error",
-      context: "Invalid payload",
-    });
-  });
 
-  test("Should return 401 Unauthorized when comparePasswords resolves to false", async () => {
-    // Unsuccessful login:
-    // - validateUserCredential resolves (valid input)
-    // - findUser resolves (user founded in the db)
-    // - comparePassword resolve to false
-    //arrange (mock all function)
-    validateUserCredentials.mockResolvedValueOnce({
-      email: "alex@gmail.com",
-      password: "testciao12",
-    });
-    findUser.mockResolvedValueOnce({
-      rows: [{ Id: 1, username: "alex", email: "alex@gmail.com" }],
-      rowCount: 1,
-    });
-    comparePasswords.mockResolvedValueOnce(false);
-    //act
-    const mock_body = {
-      email: "alex@gmail.com",
-      password: "testciao12",
-    };
-    const response = await request(app).post("/auth/login").send(mock_body);
-    //assert
-    expect(validateUserCredentials).toHaveBeenCalledTimes(1);
-    expect(findUser).toHaveBeenCalledTimes(1);
-    expect(comparePasswords).toHaveBeenCalledTimes(1);
-    expect(validateJwtPayload).toHaveBeenCalledTimes(0);
-    expect(generateJwtToken).toHaveBeenCalledTimes(0);
+    const response = await request(app).post("/auth/login").send(loginBody);
+
     expect(response.statusCode).toBe(401);
     expect(response.body).toMatchObject({
-      message: "Unauthorized wrong password",
+      message: "Unauthorized",
     });
   });
 
-  test("Should return 500 if comparePasswords throws an error", async () => {
-    // Unsuccessful login:
-    // - validateUserCredential resolves (valid input)
-    // - findUser resolves (user founded in the db)
-    // - comparePassword rejects
-    //arrange (mock all function)
-    validateUserCredentials.mockResolvedValueOnce({
-      email: "alex@gmail.com",
-      password: "testciao12",
-    });
-    findUser.mockResolvedValueOnce({
-      rows: [{ Id: 1, username: "alex", email: "alex@gmail.com" }],
-      rowCount: 1,
-    });
-    comparePasswords.mockRejectedValueOnce();
-    //act
-    const mock_body = {
-      email: "alex@gmail.com",
+  test("Should return 401 on non-existent email and return Unauthorized", async () => {
+    const loginBody = {
+      email: "nonexistent@gmail.com",
       password: "testciao12",
     };
-    const response = await request(app).post("/auth/login").send(mock_body);
-    //assert
-    expect(validateUserCredentials).toHaveBeenCalledTimes(1);
-    expect(findUser).toHaveBeenCalledTimes(1);
-    expect(comparePasswords).toHaveBeenCalledTimes(1);
-    expect(validateJwtPayload).toHaveBeenCalledTimes(0);
-    expect(generateJwtToken).toHaveBeenCalledTimes(0);
-    expect(response.statusCode).toBe(500);
-    expect(response.body).toMatchObject({
-      message: "Internal server error",
-      context: "Error on comparePasswords",
-    });
-  });
 
-  test("Should return 401 if comparePasswords throws an error", async () => {
-    // Unsuccessful login:
-    // - validateUserCredential resolves (valid input)
-    // - findUser resolves (returning [] rows and 0 rowCount)
-    //arrange (mock all function)
-    validateUserCredentials.mockResolvedValueOnce({
-      email: "alex@gmail.com",
-      password: "testciao12",
-    });
-    findUser.mockResolvedValueOnce({
-      rows: [],
-      rowCount: 0,
-    });
-    //act
-    const mock_body = {
-      email: "alex@gmail.com",
-      password: "testciao12",
-    };
-    const response = await request(app).post("/auth/login").send(mock_body);
-    //assert
-    expect(validateUserCredentials).toHaveBeenCalledTimes(1);
-    expect(findUser).toHaveBeenCalledTimes(1);
-    expect(comparePasswords).toHaveBeenCalledTimes(0);
-    expect(validateJwtPayload).toHaveBeenCalledTimes(0);
-    expect(generateJwtToken).toHaveBeenCalledTimes(0);
+    const response = await request(app).post("/auth/login").send(loginBody);
+
     expect(response.statusCode).toBe(401);
-    expect(response.body).toMatchObject({ message: "Unauthorized user" });
-  });
-
-  test("Should return 500 if findUser throws an error", async () => {
-    // Unsuccessful login:
-    // - validateUserCredential resolves (valid input)
-    // - findUser rejects
-    //arrange (mock all function)
-    validateUserCredentials.mockResolvedValueOnce({
-      email: "alex@gmail.com",
-      password: "testciao12",
-    });
-    findUser.mockRejectedValueOnce();
-
-    //act
-    const mock_body = {
-      email: "alex@gmail.com",
-      password: "testciao12",
-    };
-    const response = await request(app).post("/auth/login").send(mock_body);
-    //assert
-    expect(validateUserCredentials).toHaveBeenCalledTimes(1);
-    expect(findUser).toHaveBeenCalledTimes(1);
-    expect(comparePasswords).toHaveBeenCalledTimes(0);
-    expect(validateJwtPayload).toHaveBeenCalledTimes(0);
-    expect(generateJwtToken).toHaveBeenCalledTimes(0);
-    expect(response.statusCode).toBe(500);
     expect(response.body).toMatchObject({
-      message: "Internal server error",
-      context: "Error on findUser",
+      message: "Unauthorized",
     });
   });
 
-  test("Should return 400 if validateUserCredential throws an error", async () => {
-    // Unsuccessful login:
-    // - validateUserCredential rejects
-    //arrange (mock all function)
-    validateUserCredentials.mockRejectedValueOnce();
-
-    //act
-    const mock_body = {
-      email: "alex@gmail.com",
+  test("Should return 400 on invalid email(joy validation error) and return Unauthorized", async () => {
+    const loginBody = {
+      email: "invalid.email",
       password: "testciao12",
     };
-    const response = await request(app).post("/auth/login").send(mock_body);
-    //assert
-    expect(validateUserCredentials).toHaveBeenCalledTimes(1);
-    expect(findUser).toHaveBeenCalledTimes(0);
-    expect(comparePasswords).toHaveBeenCalledTimes(0);
-    expect(validateJwtPayload).toHaveBeenCalledTimes(0);
-    expect(generateJwtToken).toHaveBeenCalledTimes(0);
-    expect(response.statusCode).toBe(400);
-    expect(response.body).toMatchObject({ message: "Validation Error" });
-  });
 
-  test("Should return 500 with an empty body", async () => {
-    // Unsuccessful login:
-    // - validateUserCredential rejects thowin the validation Error
-    //arrange (mock all function)
-    validateUserCredentials.mockRejectedValueOnce(
-      new Error("Validation Error")
-    );
+    const response = await request(app).post("/auth/login").send(loginBody);
 
-    //act
-    const mock_body = {};
-    const response = await request(app).post("/auth/login").send(mock_body);
-    //assert
-    expect(validateUserCredentials).toHaveBeenCalledTimes(1);
-    expect(findUser).toHaveBeenCalledTimes(0);
-    expect(comparePasswords).toHaveBeenCalledTimes(0);
-    expect(validateJwtPayload).toHaveBeenCalledTimes(0);
-    expect(generateJwtToken).toHaveBeenCalledTimes(0);
     expect(response.statusCode).toBe(400);
-    expect(response.body).toMatchObject({ message: "Validation Error" });
+    expect(response.body).toMatchObject({
+      message: "Bad Request",
+    });
   });
 });
+
+describe("Integration test for /demo", () => {
+  test("Should return 200 and set cookie for demo user", async () => {
+    await createTestUser("demo", "demo@demo.com", "demotest");
+
+    const response = await request(app).get("/auth/demo");
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toMatchObject({ message: "Login successful" });
+
+    const cookies = response.headers["set-cookie"];
+    expect(cookies).toBeDefined();
+    expect(cookies[0]).toContain("token=");
+  });
+});
+
+//docs https://node.testcontainers.org/modules/postgresql/
