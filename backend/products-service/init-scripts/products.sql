@@ -11,14 +11,15 @@ CREATE TABLE products (
 
 
 -- Insert sample data into the products table
-INSERT INTO products (name, price, category, user_id) VALUES 
-('Mac m2', 999.99, 'Electronics', 1),
-('Desk Chair', 149.99, 'Furniture', 1),
-('Backpack', 39.99, 'Accessories', 1),
-('Pixel 10', 899.99, 'Electronics', 1),
-('Pixel 9', 599.99, 'Electronics', 2),
-('Coffee Table', 89.99, 'Furniture', 2),
-('Headphones', 49.99, 'Accessories', 2);
+INSERT INTO products (name, price, category, quantity, user_id) VALUES 
+('Mac m2', 999.99, 'Electronics', 5, 1),
+('Desk Chair', 149.99, 'Furniture', 2, 1),
+('Backpack', 39.99, 'Accessories', 3, 1),
+('Pixel 10', 899.99, 'Electronics', 5, 1),
+('Pixel 9', 599.99, 'Electronics', 10, 2),
+('Coffee Table', 89.99, 'Furniture', 5, 2),
+('Headphones', 49.99, 'Accessories', 6, 2),
+('Iphone 16', 899.99, 'Electronics', 10, 2);
 
 
 

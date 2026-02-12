@@ -15,7 +15,7 @@ import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const isDev = process.env.REACT_APP_IS_DEV === "true";
-const ORDERS_URL = isDev ? "http://localhost:3040/orders" : "/api/orders";
+const ORDERS_URL = isDev ? "http://localhost:3040/api/orders" : "/api/orders";
 
 const CartPage = () => {
   const { cart, removeFromCart, updateQuantity, clearCart, getTotal } =
