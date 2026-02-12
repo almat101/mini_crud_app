@@ -1,17 +1,20 @@
 all:
 	docker compose up --build -d
 
-dev:
-	docker compose -f docker-compose.dev.yml up --build
-
 down:
 	docker compose down
+
+clean:
+	docker compose down -v
+
+dev:
+	docker compose -f docker-compose.dev.yml --env-file .env.dev up --build
 
 down-dev:
 	docker compose -f docker-compose.dev.yml down
 
-fclean:
-	docker compose down -v
+clean-dev:
+	docker compose -f docker-compose.dev.yml down -v
 
 prune:
 	docker system prune -af --volumes

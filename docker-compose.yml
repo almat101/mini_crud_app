@@ -14,6 +14,8 @@ services:
         condition: service_healthy
       products-service:
         condition: service_healthy
+      orders-service:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -s http://localhost/health || exit 1"]
       interval: 30s
@@ -58,6 +60,27 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3020/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - crud-app
+
+  orders-service:
+    build: 
+      context: ./backend/orders-service
+      dockerfile: Dockerfile
+    container_name: orders-service-crud
+    env_file: ".env"
+    ports:
+      - 4040:3040
+    restart: unless-stopped
+    depends_on:
+      db_orders:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3040/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -111,6 +134,47 @@ services:
     networks:
       - crud-app
 
+
+  db_orders:
+    image: postgres:17-alpine3.22
+    container_name: db_orders
+    restart: always
+    env_file: ".env"
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER_ORDERS}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD_ORDERS}
+      - POSTGRES_DB=${POSTGRES_DB_ORDERS}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_orders_data:/var/lib/postgresql/data
+      - ./backend/orders-service/init-scripts:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s 
+    networks:
+      - crud-app
+    
+  redis:
+    image: redis:8.4.0-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    networks:
+      - crud-app
+
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: cloudflared-crud
@@ -122,6 +186,8 @@ services:
 volumes:
   postgres_auth_data:
   postgres_products_data:
+  postgres_orders_data:
+  redis_data:
 
 networks:
   crud-app:
