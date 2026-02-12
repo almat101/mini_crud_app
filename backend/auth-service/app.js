@@ -21,8 +21,12 @@ app.use(
 
 app.use(cookieParser());
 
-// middleware logger utile per stampare info sulla richiesta es "GET /about 200 1.896 ms - 34"
-app.use(morgan("dev"));
+// middleware logger - skip /health to avoid log noise
+app.use(
+  morgan("dev", {
+    skip: (req) => req.url === "/health",
+  })
+);
 
 // middleware che aggiunge vari header di sicurezza alla risposta HTTP
 app.use(helmet());
