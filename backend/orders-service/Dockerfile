@@ -30,6 +30,7 @@ RUN npm install
 # Copy built files and migrations
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/drizzle ./drizzle
+COPY --from=build /app/src ./src
 
 EXPOSE 3040
 
